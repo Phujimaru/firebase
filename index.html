@@ -171,6 +171,12 @@
                         this.courses.push({ id: doc.id, ...doc.data() });
                     });
                 },
+                google_login() {
+                  firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider());
+                },
+                google_logout() {
+                  firebase.auth().signOut();
+                },
                 async addClassroom() {
                     if (this.userStatus !== 1) return;
                     if (!this.newClassroom.name || !this.newClassroom.code || !this.newClassroom.room || !this.newClassroom.photo) {
