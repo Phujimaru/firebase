@@ -31,9 +31,9 @@
                                     {{ user.email }}<br />
                                     Status: {{ userStatus === 1 ? 'Teacher' : 'Student' }}
                                 </div>
-                                <v-btn @click="google_logout">Logout</v-btn>
+                                <v-btn @click="google_logout" color="blur" class="white--text">Logout</v-btn>
                             </template>
-                            <v-btn @click="google_login" v-if="!user">Login</v-btn>
+                            <v-btn @click="google_login" v-if="!user" color="blur" class="white--text">Login</v-btn>
                         </v-card-actions>
                     </v-card-text>
                 </v-card>
