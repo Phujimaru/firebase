@@ -23,30 +23,42 @@
         <div id="app">
             <v-app>
                 <v-container>
-                    <v-card>
-                        <v-card-title class="bg-blue-grey">{{ title
-                            }}</v-card-title>
+                    <v-card class="pa-4 rounded-lg elevation-3">
+                        <v-card-title class="bg-blue-grey text-white text-h6 font-weight-bold">
+                            {{ title }}
+                        </v-card-title>
                         <v-card-text>
-                            <v-card-actions>
+                            <v-card-actions class="d-flex align-center" :class="!user ? 'justify-center' : ''">
                                 <template v-if="user">
-                                    <v-avatar size="100">
-                                        <img :src="user.photoURL" />
+                                    <v-avatar size="80" class="mr-4 elevation-2">
+                                        <img :src="user.photoURL" class="rounded-circle" />
                                     </v-avatar>
-                                    <div>
-                                        {{ user.displayName }}<br />
-                                        {{ user.email }}<br />
-                                        Status: {{ userStatus === 1 ? 'Teacher'
-                                        : 'Student' }}
+                                    <div class="text-body-1 font-weight-medium">
+                                        <strong class="text-h6">{{ user.displayName }}</strong><br />
+                                        <span class="text-caption text-grey-darken-1">{{ user.email }}</span><br />
+                                        <span class="text-subtitle-2 font-italic">Status: 
+                                            <span :class="userStatus === 1 ? 'text-blue' : 'text-green'">
+                                                {{ userStatus === 1 ? 'Teacher' : 'Student' }}
+                                            </span>
+                                        </span>
                                     </div>
-                                    <v-btn @click="google_logout">Logout</v-btn>
+                                    <v-spacer></v-spacer>
+                                    <v-btn @click="google_logout" color="red darken-1" class="white--text elevation-2">
+                                        Logout
+                                    </v-btn>
                                 </template>
-                                <v-btn @click="google_login"
-                                    v-if="!user">Login</v-btn>
+                                <v-btn @click="google_login" v-if="!user" color="green darken-1" class="white--text elevation-2">
+                                    Login
+                                </v-btn>
                             </v-card-actions>
                         </v-card-text>
                     </v-card>
+                    
+                    
+                    
+                    
 
-                    <v-tabs v-model="tab">
+                    <v-tabs v-model="tab"  v-if="user">
                         <v-tab value="courses">Courses</v-tab>
                         <v-tab value="manage" v-if="userStatus === 1">Manage
                             Classroom</v-tab>
@@ -55,7 +67,8 @@
                             v-if="userStatus === 1">Users</v-tab>
                     </v-tabs>
 
-                    <v-window v-model="tab">
+                    <v-window v-model="tab" v-if="user">
+
                         <v-window-item value="courses">
                             <v-card>
                                 <v-card-title>Courses</v-card-title>
@@ -170,15 +183,15 @@
         </div>
 
         <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCQ6hymNSFTOungZGp2_iZVcNnqvVrhqJQ",
-            authDomain: "web2567phupha.firebaseapp.com",
-            projectId: "web2567phupha",
-            storageBucket: "web2567phupha.firebasestorage.app",
-            messagingSenderId: "880101399133",
-            appId: "1:880101399133:web:03a059543250e03a4d4bb4",
-            measurementId: "G-QDB8L9G7S4"
-        };
+      const firebaseConfig = {
+  apiKey: "AIzaSyCsB5O8vwk_EhCmME6Zg6CqN1gVFl4eJik",
+  authDomain: "projectwebm2025.firebaseapp.com",
+  projectId: "projectwebm2025",
+  storageBucket: "projectwebm2025.firebasestorage.app",
+  messagingSenderId: "316415805582",
+  appId: "1:316415805582:web:582b27fa7d4f8974bee1df",
+  measurementId: "G-EC8J8RGC0T"
+};
 
 
         firebase.initializeApp(firebaseConfig);
