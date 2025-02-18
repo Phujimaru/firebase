@@ -1,177 +1,175 @@
 <!DOCTYPE html>
 <html lang="en">
 
+    <head>
+        <title>Check in</title>
+        <script
+            src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+        <script
+            src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+        <script
+            src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+        <script
+            src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+        <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+        <link
+            href="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.css"
+            rel="stylesheet" />
+        <script
+            src="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.js"></script>
+    </head>
 
-<head>
-    <title>Check in</title>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.js"></script>
-</head>
-
-
-<body>
-    <div id="app">
-        <v-app>
-            <v-container>
-                <v-card>
-                    <v-card-title class="bg-blue-grey">{{ title }}</v-card-title>
-                    <v-card-text>
-                        <v-card-actions>
-                            <template v-if="user">
-                                <v-avatar size="100">
-                                    <img :src="user.photoURL" />
-                                </v-avatar>
-                                <div>
-                                    {{ user.displayName }}<br />
-                                    {{ user.email }}<br />
-                                    Status: {{ userStatus === 1 ? 'Teacher' : 'Student' }}
-                                </div>
-                                <v-btn @click="google_logout">Logout</v-btn>
-                            </template>
-                            <v-btn @click="google_login" v-if="!user">Login</v-btn>
-                        </v-card-actions>
-                    </v-card-text>
-                </v-card>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                <v-tabs v-model="tab">
-                    <v-tab value="courses">Courses</v-tab>
-                    <v-tab value="manage" v-if="userStatus === 1">Manage Classroom</v-tab>
-                    <v-tab value="profile">Profile</v-tab>
-                    <v-tab value="users" v-if="userStatus === 1">Users</v-tab>
-                </v-tabs>
-
-
-
-
-                <v-window v-model="tab">
-                    <v-window-item value="courses">
-                        <v-card>
-                            <v-card-title>Courses</v-card-title>
-                            <v-list>
-                                <v-list-item v-for="course in courses" :key="course.id">
-                                    <v-avatar size="50">
-                                        <img :src="course.photo" alt="Course Image" />
+    <body>
+        <div id="app">
+            <v-app>
+                <v-container>
+                    <v-card>
+                        <v-card-title class="bg-blue-grey">{{ title
+                            }}</v-card-title>
+                        <v-card-text>
+                            <v-card-actions>
+                                <template v-if="user">
+                                    <v-avatar size="100">
+                                        <img :src="user.photoURL" />
                                     </v-avatar>
-                                    {{ course.name }} - Room: {{ course.room }}
-                                    <v-btn v-if="userStatus === 1" color="blue"
-                                        @click="editClassroom(course)">Edit</v-btn>
-                                    <v-btn v-if="userStatus === 1" color="red"
-                                        @click="deleteClassroom(course.id) " style="margin-left: 10px;">Delete</v-btn>
-                                </v-list-item>
-                            </v-list>
-                        </v-card>
-                    </v-window-item>
-
-
-
-
-                    <v-window-item value="manage" v-if="userStatus === 1">
-                        <v-card>
-                            <v-card-title>Manage Classroom</v-card-title>
-                            <v-card-text>
-                                <v-text-field v-model="newClassroom.name" label="Classroom Name"></v-text-field>
-                                <v-text-field v-model="newClassroom.code" label="Classroom Code"></v-text-field>
-                                <v-text-field v-model="newClassroom.room" label="Room"></v-text-field>
-                                <v-text-field v-model="newClassroom.photo" label="Classroom Photo URL"></v-text-field>
-                            </v-card-text>
-                            <v-card-actions>
-                                <v-btn color="green" @click="addClassroom">Add Classroom</v-btn>
-                                <v-btn color="orange" @click="updateClassroom">Update Classroom</v-btn>
+                                    <div>
+                                        {{ user.displayName }}<br />
+                                        {{ user.email }}<br />
+                                        Status: {{ userStatus === 1 ? 'Teacher'
+                                        : 'Student' }}
+                                    </div>
+                                    <v-btn @click="google_logout">Logout</v-btn>
+                                </template>
+                                <v-btn @click="google_login"
+                                    v-if="!user">Login</v-btn>
                             </v-card-actions>
-                        </v-card>
-                    </v-window-item>
+                        </v-card-text>
+                    </v-card>
 
+                    <v-tabs v-model="tab">
+                        <v-tab value="courses">Courses</v-tab>
+                        <v-tab value="manage" v-if="userStatus === 1">Manage
+                            Classroom</v-tab>
+                        <v-tab value="profile">Profile</v-tab>
+                        <v-tab value="users"
+                            v-if="userStatus === 1">Users</v-tab>
+                    </v-tabs>
 
+                    <v-window v-model="tab">
+                        <v-window-item value="courses">
+                            <v-card>
+                                <v-card-title>Courses</v-card-title>
+                                <v-list>
+                                    <v-list-item v-for="course in courses"
+                                        :key="course.id">
+                                        <v-avatar size="50">
+                                            <img :src="course.photo"
+                                                alt="Course Image" />
+                                        </v-avatar>
+                                        {{ course.name }} - Room: {{ course.room
+                                        }}
+                                        <v-btn v-if="userStatus === 1"
+                                            color="blue"
+                                            @click="editClassroom(course)">Edit</v-btn>
+                                        <v-btn v-if="userStatus === 1"
+                                            color="red"
+                                            @click="deleteClassroom(course.id) "
+                                            style="margin-left: 10px;">Delete</v-btn>
+                                    </v-list-item>
+                                </v-list>
+                            </v-card>
+                        </v-window-item>
 
+                        <v-window-item value="manage" v-if="userStatus === 1">
+                            <v-card>
+                                <v-card-title>Manage Classroom</v-card-title>
+                                <v-card-text>
+                                    <v-text-field v-model="newClassroom.name"
+                                        label="Classroom Name"></v-text-field>
+                                    <v-text-field v-model="newClassroom.code"
+                                        label="Classroom Code"></v-text-field>
+                                    <v-text-field v-model="newClassroom.room"
+                                        label="Room"></v-text-field>
+                                    <v-text-field v-model="newClassroom.photo"
+                                        label="Classroom Photo URL"></v-text-field>
+                                </v-card-text>
+                                <v-card-actions>
+                                    <v-btn color="green"
+                                        @click="addClassroom">Add
+                                        Classroom</v-btn>
+                                    <v-btn color="orange"
+                                        @click="updateClassroom">Update
+                                        Classroom</v-btn>
+                                </v-card-actions>
+                            </v-card>
+                        </v-window-item>
 
-                    <v-window-item value="profile">
-                        <v-card>
-                            <v-card-title>Edit Profile</v-card-title>
-                            <v-card-text>
-                                <v-text-field v-model="userProfile.name" label="Name"></v-text-field>
-                                <v-text-field v-model="userProfile.email" label="New Email"
-                                    placeholder="Enter new email"></v-text-field>
-                                    <v-text-field v-model="userProfile.photoURL" label="Profile Image URL"
-                                    placeholder="Enter image URL"></v-text-field>
-                            </v-card-text>
-                            <v-card-actions>
-                                <v-btn @click="updateProfile">Save</v-btn>
-                                <v-btn color="grey" @click="cancelEdit">Cancel</v-btn>
-                            </v-card-actions>
-                        </v-card>
-                    </v-window-item>
+                        <v-window-item value="profile">
+                            <v-card>
+                                <v-card-title>Edit Profile</v-card-title>
+                                <v-card-text>
+                                    <v-text-field v-model="userProfile.name"
+                                        label="Name"></v-text-field>
+                                    <v-text-field v-model="userProfile.email"
+                                        label="New Email"
+                                        placeholder="Enter new email"></v-text-field>
+                                    <v-text-field v-model="userProfile.photoURL"
+                                        label="Profile Image URL"
+                                        placeholder="Enter image URL"></v-text-field>
+                                </v-card-text>
+                                <v-card-actions>
+                                    <v-btn @click="updateProfile">Save</v-btn>
+                                    <v-btn color="grey"
+                                        @click="cancelEdit">Cancel</v-btn>
+                                </v-card-actions>
+                            </v-card>
+                        </v-window-item>
 
+                        <v-window-item value="users" v-if="userStatus === 1">
+                            <v-card>
+                                <v-card-title>Manage Users</v-card-title>
+                                <v-list>
+                                    <v-list-item v-for="u in users" :key="u.id">
+                                        <v-row align="center">
+                                            <v-col cols="auto">
+                                                <v-avatar size="50">
+                                                    <img :src="u.photoURL"
+                                                        alt="User Image" />
+                                                </v-avatar>
+                                            </v-col>
+                                            <v-col>
+                                                {{ u.displayName }} - {{ u.email
+                                                }}
+                                            </v-col>
+                                            <v-col cols="auto">
+                                                <v-chip :color="u.status === 1 ? 'blue' : 'green'">
+                                                    {{ u.status === 1 ? 'Teacher' : 'Student' }}
+                                                </v-chip>
+                                                
+                                                
+                                            </v-col>
+                                            <v-spacer></v-spacer>
+                                            <v-col cols="auto">
+                                                <v-btn v-if="userStatus === 1"
+                                                    color="blue"
+                                                    @click="editUser(u)">Edit</v-btn>
+                                                <v-btn v-if="userStatus === 1"
+                                                    color="red"
+                                                    @click="deleteUser(u.id)"
+                                                    style="margin-left: 10px;">Delete</v-btn>
+                                            </v-col>
+                                        </v-row>
+                                    </v-list-item>
+                                </v-list>
+                            </v-card>
+                        </v-window-item>
 
+                    </v-window>
+                </v-container>
+            </v-app>
+        </div>
 
-
-
-                    <v-window-item value="users" v-if="userStatus === 1">
-                        <v-card>
-                            <v-card-title>Manage Users</v-card-title>
-                            <v-list>
-                                <v-list-item v-for="u in users" :key="u.id">
-                                    <v-row align="center">
-                                        <v-col cols="auto">
-                                            <v-avatar size="50">
-                                                <img :src="u.photoURL" alt="User Image" />
-                                            </v-avatar>
-                                        </v-col>
-                                        <v-col>
-                                            {{ u.displayName }} - {{ u.email }}
-                                        </v-col>
-                                        <v-col cols="auto">
-                                            <v-chip :color="u.classroom.status === 1 ? 'blue' : 'green'">
-                                                {{ u.classroom.status === 1 ? 'Teacher' : 'Student' }}
-                                            </v-chip>
-                                        </v-col>
-                                        <v-spacer></v-spacer>
-                                        <v-col cols="auto">
-                                            <v-btn v-if="userStatus === 1" color="blue" @click="editUser(u)">Edit</v-btn>
-                                            <v-btn v-if="userStatus === 1" color="red" @click="deleteUser(u.id)" style="margin-left: 10px;">Delete</v-btn>
-                                        </v-col>
-                                    </v-row>
-                                </v-list-item>
-                            </v-list>
-                        </v-card>
-                    </v-window-item>
-                    
-
-
-
-
-
-
-
-
-
-
-                </v-window>
-            </v-container>
-        </v-app>
-    </div>
-
-
-
-
-    <script>
+        <script>
         const firebaseConfig = {
             apiKey: "AIzaSyCQ6hymNSFTOungZGp2_iZVcNnqvVrhqJQ",
             authDomain: "web2567phupha.firebaseapp.com",
@@ -211,24 +209,42 @@
                 };
             },
             mounted() {
-                firebase.auth().onAuthStateChanged(async (user) => {
-                    if (user) {
-                        this.user = user.toJSON();
-                        const doc = await db.collection("users").doc(user.uid).get();
-                        
-                        if (doc.exists) {
-                            this.userStatus = doc.data().classroom.status;
-                        }
-                    } else {
-                        this.user = null;
-                        this.userStatus = null;
-                    }
-                });
-                this.loadCourses();
-                this.loadUsers();
+    firebase.auth().onAuthStateChanged(async (user) => {
+        if (user) {
+            this.user = user.toJSON();
+            const userRef = db.collection("users").doc(user.uid);
+            const doc = await userRef.get();
 
-                
-            },
+            if (!doc.exists) {
+                // ถ้าเป็นผู้ใช้ใหม่ ให้สร้างเอกสารใหม่
+                await userRef.set({
+                    email: user.email,
+                    name: user.displayName,
+                    photo: user.photoURL,
+                });
+            }
+
+            // ตรวจสอบและสร้าง classroom -> status = 2 ถ้ายังไม่มี
+            const classroomRef = userRef.collection("classroom").doc("status");
+            const classroomDoc = await classroomRef.get();
+
+            if (!classroomDoc.exists) {
+                await classroomRef.set({ status: 2 }); // ค่าเริ่มต้นเป็น 2
+            }
+
+            // ดึงค่า status มาใช้
+            this.userStatus = (await classroomRef.get()).data().status;
+        } else {
+            this.user = null;
+            this.userStatus = null;
+        }
+    });
+
+    this.loadCourses();
+    this.loadUsers();
+}
+
+    ,
             methods: {
                 async loadCourses() {
                     this.courses = [];
@@ -317,12 +333,26 @@
                     }
                 },
                 async loadUsers() {
-                    this.users = [];
-                    const querySnapshot = await db.collection("users").get();
-                    querySnapshot.forEach(doc => {
-                    this.users.push({ id: doc.id, ...doc.data() });
-                    });
-                },
+                        this.users = [];
+                        const querySnapshot = await db.collection("users").get();
+
+                        for (const doc of querySnapshot.docs) {
+                        let userData = { id: doc.id, ...doc.data() };
+
+                            // ดึงค่า status จาก Firestore
+        const classroomRef = db.collection("users").doc(doc.id).collection("classroom").doc("status");
+        const classroomDoc = await classroomRef.get();
+
+        if (classroomDoc.exists) {
+            userData.status = classroomDoc.data().status; // ดึงค่าจาก Firestore
+        } else {
+            userData.status = 2; // กำหนดค่าเริ่มต้นเป็น Student ถ้าไม่มีข้อมูล
+        }
+
+        this.users.push(userData);
+    }
+}
+,
                 editUser(user) {
                     this.userProfile = JSON.parse(JSON.stringify(user)); // คัดลอกข้อมูลแบบ Deep Copy
                     this.tab = 'profile'; // เปลี่ยนแท็บไปที่หน้าแก้ไขโปรไฟล์
@@ -345,10 +375,6 @@
 
         app.use(vuetify).mount("#app");
     </script>
-</body>
-
+    </body>
 
 </html>
-
-
-
