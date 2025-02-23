@@ -1,394 +1,167 @@
 <!DOCTYPE html>
-<html lang="en">
-
-    <head>
-        <title>Check in</title>
-        <script
-            src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-        <script
-            src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-        <script
-            src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-        <script
-            src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
-        <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-        <link
-            href="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.css"
-            rel="stylesheet" />
-        <script
-            src="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.js"></script>
-    </head>
-
-    <body>
-        <div id="app">
-            <v-app>
-                <v-container>
-                    <v-card class="pa-4 rounded-lg elevation-3">
-                        <v-card-title class="bg-blue-grey text-white text-h6 font-weight-bold">
-                            {{ title }}
-                        </v-card-title>
-                        <v-card-text>
-                            <v-card-actions class="d-flex align-center" :class="!user ? 'justify-center' : ''">
-                                <template v-if="user">
-                                    <v-avatar size="80" class="mr-4 elevation-2">
-                                        <img :src="user.photoURL" class="rounded-circle" />
-                                    </v-avatar>
-                                    <div class="text-body-1 font-weight-medium">
-                                        <strong class="text-h6">{{ user.displayName }}</strong><br />
-                                        <span class="text-caption text-grey-darken-1">{{ user.email }}</span><br />
-                                        <span class="text-subtitle-2 font-italic">Status: 
-                                            <span :class="userStatus === 1 ? 'text-blue' : 'text-green'">
-                                                {{ userStatus === 1 ? 'Teacher' : 'Student' }}
-                                            </span>
-                                        </span>
-                                    </div>
-                                    <v-spacer></v-spacer>
-                                    <v-btn @click="google_logout" color="red darken-1" class="white--text elevation-2">
-                                        Logout
-                                    </v-btn>
-                                </template>
-                                <v-btn @click="google_login" v-if="!user" color="green darken-1" class="white--text elevation-2">
-                                    Login
-                                </v-btn>
-                            </v-card-actions>
-                        </v-card-text>
+<html>
+<head>
+    <title>Classroom Check-in</title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.js"></script>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+        .full-height {
+            height: 100vh;
+        }
+        .login-bg {
+            background: url('https://source.unsplash.com/1600x900/?classroom') center/cover no-repeat;
+        }
+        .text-shadow {
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <v-app>
+            <template v-if="!user">
+                <!-- หน้า Login -->
+                <v-container class="full-height login-bg d-flex justify-center align-center">
+                    <v-card class="pa-5 text-center" elevation="10" style="opacity: 0.9;">
+                        <h1 class="text-shadow">Welcome to Classroom Check-in</h1>
+                        <p class="mb-4">Please login to continue</p>
+                        <v-btn @click="google_login" color="green" block>
+                            Login with Google
+                        </v-btn>
                     </v-card>
-                    
-                    
-                    
-                    
-
-                    <v-tabs v-model="tab"  v-if="user">
-                        <v-tab value="courses">Courses</v-tab>
-                        <v-tab value="manage" v-if="userStatus === 1">Manage
-                            Classroom</v-tab>
-                        <v-tab value="profile">Profile</v-tab>
-                        <v-tab value="users"
-                            v-if="userStatus === 1">Users</v-tab>
-                    </v-tabs>
-
-                    <v-window v-model="tab" v-if="user">
-
-                        <v-window-item value="courses">
-                            <v-card>
-                                <v-card-title>Courses</v-card-title>
-                                <v-list>
-                                    <v-list-item v-for="course in courses"
-                                        :key="course.id">
-                                        <v-avatar size="50">
-                                            <img :src="course.photo"
-                                                alt="Course Image" />
-                                        </v-avatar>
-                                        {{ course.name }} - Room: {{ course.room
-                                        }}
-                                        <v-btn v-if="userStatus === 1"
-                                            color="blue"
-                                            @click="editClassroom(course)">Edit</v-btn>
-                                        <v-btn v-if="userStatus === 1"
-                                            color="red"
-                                            @click="deleteClassroom(course.id) "
-                                            style="margin-left: 10px;">Delete</v-btn>
-                                    </v-list-item>
-                                </v-list>
-                            </v-card>
-                        </v-window-item>
-
-                        <v-window-item value="manage" v-if="userStatus === 1">
-                            <v-card>
-                                <v-card-title>Manage Classroom</v-card-title>
-                                <v-card-text>
-                                    <v-text-field v-model="newClassroom.name"
-                                        label="Classroom Name"></v-text-field>
-                                    <v-text-field v-model="newClassroom.code"
-                                        label="Classroom Code"></v-text-field>
-                                    <v-text-field v-model="newClassroom.room"
-                                        label="Room"></v-text-field>
-                                    <v-text-field v-model="newClassroom.photo"
-                                        label="Classroom Photo URL"></v-text-field>
-                                </v-card-text>
-                                <v-card-actions>
-                                    <v-btn color="green"
-                                        @click="addClassroom">Add
-                                        Classroom</v-btn>
-                                    <v-btn color="orange"
-                                        @click="updateClassroom">Update
-                                        Classroom</v-btn>
-                                </v-card-actions>
-                            </v-card>
-                        </v-window-item>
-
-                        <v-window-item value="profile">
-                            <v-card>
-                                <v-card-title>Edit Profile</v-card-title>
-                                <v-card-text>
-                                    <v-text-field v-model="userProfile.name"
-                                        label="Name"></v-text-field>
-                                    <v-text-field v-model="userProfile.email"
-                                        label="New Email"
-                                        placeholder="Enter new email"></v-text-field>
-                                    <v-text-field v-model="userProfile.photoURL"
-                                        label="Profile Image URL"
-                                        placeholder="Enter image URL"></v-text-field>
-                                </v-card-text>
-                                <v-card-actions>
-                                    <v-btn @click="updateProfile">Save</v-btn>
-                                    <v-btn color="grey"
-                                        @click="cancelEdit">Cancel</v-btn>
-                                </v-card-actions>
-                            </v-card>
-                        </v-window-item>
-
-                        <v-window-item value="users" v-if="userStatus === 1">
-                            <v-card>
-                                <v-card-title>Manage Users</v-card-title>
-                                <v-list>
-                                    <v-list-item v-for="u in users" :key="u.id">
-                                        <v-row align="center">
-                                            <v-col cols="auto">
-                                                <v-avatar size="50">
-                                                    <img :src="u.photoURL"
-                                                        alt="User Image" />
-                                                </v-avatar>
-                                            </v-col>
-                                            <v-col>
-                                                {{ u.displayName }} - {{ u.email
-                                                }}
-                                            </v-col>
-                                            <v-col cols="auto">
-                                                <v-chip :color="u.status === 1 ? 'blue' : 'green'">
-                                                    {{ u.status === 1 ? 'Teacher' : 'Student' }}
-                                                </v-chip>
-                                                
-                                                
-                                            </v-col>
-                                            <v-spacer></v-spacer>
-                                            <v-col cols="auto">
-                                                <v-btn v-if="userStatus === 1"
-                                                    color="blue"
-                                                    @click="editUser(u)">Edit</v-btn>
-                                                <v-btn v-if="userStatus === 1"
-                                                    color="red"
-                                                    @click="deleteUser(u.id)"
-                                                    style="margin-left: 10px;">Delete</v-btn>
-                                            </v-col>
-                                        </v-row>
-                                    </v-list-item>
-                                </v-list>
-                            </v-card>
-                        </v-window-item>
-
-                    </v-window>
                 </v-container>
-            </v-app>
-        </div>
+            </template>
 
-        <script>
-      const firebaseConfig = {
-  apiKey: "AIzaSyCsB5O8vwk_EhCmME6Zg6CqN1gVFl4eJik",
-  authDomain: "projectwebm2025.firebaseapp.com",
-  projectId: "projectwebm2025",
-  storageBucket: "projectwebm2025.firebasestorage.app",
-  messagingSenderId: "316415805582",
-  appId: "1:316415805582:web:582b27fa7d4f8974bee1df",
-  measurementId: "G-EC8J8RGC0T"
-};
+            <template v-else>
+                <v-container fluid class="full-height">
+                    <v-row class="fill-height">
+                        <!-- Sidebar เมนูทางซ้าย -->
+                        <v-col cols="12" md="3" class="pa-4" style="background-color: #f4f4f9;">
+                            <v-card class="pa-3" elevation="3">
+                                <v-avatar class="user-avatar" v-if="user">
+                                    <img :src="user.photoURL" class="rounded-circle" />
+                                </v-avatar>
+                                <div v-if="user" class="user-details mt-3">
+                                    <strong>{{ user.displayName }}</strong>
+                                    <p>{{ user.email }}</p>
+                                    <p>Status: 
+                                        <span :class="userStatus === 1 ? 'text-blue' : 'text-green'">
+                                            {{ userStatus === 1 ? 'Teacher' : 'Student' }}
+                                        </span>
+                                    </p>
+                                </div>
+                                <!-- ปุ่มเมนู -->
+                                <v-divider class="mt-3 mb-3"></v-divider>
+                                <v-btn v-if="userStatus === 1" color="primary" block class="mb-2" @click="goToCreateClassroom">
+                                    สร้างวิชาเรียน
+                                </v-btn>
+                                <v-btn @click="google_logout" color="red" block class="mb-2">
+                                    Logout
+                                </v-btn>
+                            </v-card>
+                        </v-col>
 
+                        <!-- แสดงรายละเอียดวิชาเรียน -->
+                        <v-col cols="12" md="9" class="pa-4">
+                            <v-container fluid>
+                                <v-row>
+                                    <v-col cols="12" md="6" v-for="classroom in classrooms" :key="classroom.id">
+                                        <v-card elevation="2">
+                                            <v-img :src="classroom.image" height="200px"></v-img>
+                                            <v-card-title>{{ classroom.name }}</v-card-title>
+                                            <v-card-subtitle>{{ classroom.teacher }}</v-card-subtitle>
+                                            <v-card-actions>
+                                                <v-btn color="blue" @click="goToEditPage(classroom.id)">Edit</v-btn>
+                                            </v-card-actions>
+                                        </v-card>
+                                    </v-col>
+                                </v-row>
+                            </v-container>
+                        </v-col>
+                    </v-row>
+                </v-container>
+            </template>
+        </v-app>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCsB5O8vwk_EhCmME6Zg6CqN1gVFl4eJik",
+            authDomain: "projectwebm2025.firebaseapp.com",
+            projectId: "projectwebm2025",
+            storageBucket: "projectwebm2025.firebasestorage.app",
+            messagingSenderId: "316415805582",
+            appId: "1:316415805582:web:582b27fa7d4f8974bee1df",
+            measurementId: "G-EC8J8RGC0T"
+        };
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        const { createApp, ref } = Vue;
         const vuetify = Vuetify.createVuetify();
 
-
-
-
-        const app = Vue.createApp({
+        createApp({
             data() {
                 return {
-                    title: "CheckIT",
                     user: null,
-                    userProfile: {},
                     userStatus: null,
-                    courses: [],
-                    tab: 'courses',
-                    newClassroom: {
-                        name: '',
-                        code: '',
-                        room: '',
-                        photo: ''
-                    },
-                    users: [],
-                    selectedUser: {}
-
+                    classrooms: []
                 };
             },
-            mounted() {
-    firebase.auth().onAuthStateChanged(async (user) => {
-        if (user) {
-            this.user = user.toJSON();
-            const userRef = db.collection("users").doc(user.uid);
-            const doc = await userRef.get();
+            methods: {
+                google_login() {
+                    const provider = new firebase.auth.GoogleAuthProvider();
+                    firebase.auth().signInWithPopup(provider).then(result => {
+                        this.user = result.user;
+                        this.checkUserStatus();
+                    });
+                },
+                google_logout() {
+                    firebase.auth().signOut().then(() => {
+                        this.user = null;
+                        this.userStatus = null;
+                    });
+                },
+                checkUserStatus() {
+                    if (this.user) {
+                        db.collection('users').doc(this.user.uid).collection('classroom').doc('status').get()
+                            .then(doc => {
+                                if (doc.exists) {
+                                    this.userStatus = doc.data().status;
+                                }
+                            });
+                    }
+                },
+                goToCreateClassroom() {
+    window.location.href = 'edit.html';
+},
 
-            if (!doc.exists) {
-                // ถ้าเป็นผู้ใช้ใหม่ ให้สร้างเอกสารใหม่
-                await userRef.set({
-                    email: user.email,
-                    name: user.displayName,
-                    photo: user.photoURL,
+                goToEditPage(classroomId) {
+                    alert("ไปหน้า Edit ของ Classroom ID: " + classroomId);
+                }
+            },
+            mounted() {
+                firebase.auth().onAuthStateChanged(user => {
+                    this.user = user;
+                    if (user) {
+                        this.checkUserStatus();
+                    }
+                });
+                db.collection('classrooms').get().then(snapshot => {
+                    this.classrooms = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 });
             }
-
-            // ตรวจสอบและสร้าง classroom -> status = 2 ถ้ายังไม่มี
-            const classroomRef = userRef.collection("classroom").doc("status");
-            const classroomDoc = await classroomRef.get();
-
-            if (!classroomDoc.exists) {
-                await classroomRef.set({ status: 2 }); // ค่าเริ่มต้นเป็น 2
-            }
-
-            // ดึงค่า status มาใช้
-            this.userStatus = (await classroomRef.get()).data().status;
-        } else {
-            this.user = null;
-            this.userStatus = null;
-        }
-    });
-
-    this.loadCourses();
-    this.loadUsers();
-}
-
-    ,
-            methods: {
-                async loadCourses() {
-                    this.courses = [];
-                    const querySnapshot = await db.collection("classroom").get();
-                    querySnapshot.forEach((doc) => {
-                        this.courses.push({ id: doc.id, ...doc.data() });
-                    });
-                },
-                google_login() {
-          firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider());
-        },
-        google_logout() {
-          firebase.auth().signOut();},
-                async addClassroom() {
-                    if (this.userStatus !== 1) return;
-                    if (!this.newClassroom.name || !this.newClassroom.code || !this.newClassroom.room || !this.newClassroom.photo) {
-                        alert("Please fill all required fields.");
-                        return;
-                    }
-                    const classroomData = {
-                        ...this.newClassroom,
-                        owner: this.user.uid
-                    };
-                    await db.collection("classroom").add(classroomData);
-                    alert("Classroom added successfully!");
-                    this.loadCourses();
-                },
-                async updateClassroom() {
-                    if (!this.newClassroom.id) return;
-                    await db.collection("classroom").doc(this.newClassroom.id).update(this.newClassroom);
-                    alert("Classroom updated successfully!");
-                    this.loadCourses();
-                },
-                async deleteClassroom(id) {
-                    if (confirm("Are you sure you want to delete this classroom?")) {
-                        await db.collection("classroom").doc(id).delete();
-                        alert("Classroom deleted successfully!");
-                        this.loadCourses();
-                    }
-                },
-                editClassroom(course) {
-                    this.newClassroom = { ...course };
-                    this.tab = 'manage';
-                },
-                loadUserProfile(uid) {
-                    db.collection("users").doc(uid).get().then(doc => {
-                        if (doc.exists) {
-                            this.userProfile = doc.data();
-                        }
-                    });
-                },
-                updateProfile() {
-                    if (this.user) {
-                        const userRef = db.collection("users").doc(this.user.uid);
-
-
-                        userRef.set(this.userProfile, { merge: true }).then(() => {
-                            if (this.userProfile.email !== this.user.email) {
-                                firebase.auth().currentUser.updateEmail(this.userProfile.email).then(() => {
-                                    alert("Email updated! Please check your inbox to verify your new email.");
-                                    firebase.auth().currentUser.sendEmailVerification().then(() => {
-                                        alert("Verification email sent. Please verify your new email address.");
-                                    }).catch(error => {
-                                        console.error("Error sending verification email: ", error);
-                                    });
-                                    this.user.email = this.userProfile.email; 
-                                }).catch(error => {
-                                    console.error("Error updating email: ", error);
-                                    alert("Error updating email. Please try again.");
-                                });
-                            }
-
-                            firebase.auth().currentUser.updateProfile({
-                                displayName: this.userProfile.name,
-                                photoURL: this.userProfile.photoURL
-                            }).then(() => {
-                                alert("Profile updated successfully!");
-                                this.user.displayName = this.userProfile.name;
-                                this.user.photoURL = this.userProfile.photoURL;
-                            }).catch(error => {
-                                console.error("Error updating Firebase Authentication profile: ", error);
-                            });
-                        }).catch(error => {
-                            console.error("Error updating Firestore user profile: ", error);
-                        });
-                    }
-                },
-                async loadUsers() {
-                        this.users = [];
-                        const querySnapshot = await db.collection("users").get();
-
-                        for (const doc of querySnapshot.docs) {
-                        let userData = { id: doc.id, ...doc.data() };
-
-                            // ดึงค่า status จาก Firestore
-        const classroomRef = db.collection("users").doc(doc.id).collection("classroom").doc("status");
-        const classroomDoc = await classroomRef.get();
-
-        if (classroomDoc.exists) {
-            userData.status = classroomDoc.data().status; // ดึงค่าจาก Firestore
-        } else {
-            userData.status = 2; // กำหนดค่าเริ่มต้นเป็น Student ถ้าไม่มีข้อมูล
-        }
-
-        this.users.push(userData);
-    }
-}
-,
-                //i love u
-                editUser(user) {
-                    this.userProfile = JSON.parse(JSON.stringify(user)); // คัดลอกข้อมูลแบบ Deep Copy
-                    this.tab = 'profile'; // เปลี่ยนแท็บไปที่หน้าแก้ไขโปรไฟล์
-                    console.log("Editing user:", this.userProfile); // ตรวจสอบค่าใน Console
-                },
-
-                async deleteUser(id) {
-                    if (confirm("Are you sure you want to delete this user?")) {
-                    await db.collection("users").doc(id).delete();
-                    alert("User deleted successfully!");
-                    this.loadUsers();
-                }},
-                cancelEdit() {
-                    this.userProfile = {}; // ล้างข้อมูลที่กรอก
-                    this.tab = 'users'; // กลับไปที่หน้ารายชื่อผู้ใช้
-                }
-            }
-        });
-
-
-        app.use(vuetify).mount("#app");
+        }).use(vuetify).mount("#app");
     </script>
-    </body>
-
+</body>
 </html>
+
