@@ -1,14 +1,21 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Classroom Check-in</title>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.js"></script>
-    <style>
+    <head>
+        <title>Classroom Check-in</title>
+        <script
+            src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+        <script
+            src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+        <script
+            src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+        <script
+            src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+        <link
+            href="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.css"
+            rel="stylesheet" />
+        <script
+            src="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.js"></script>
+        <style>
         body, html {
             height: 100%;
             margin: 0;
@@ -24,76 +31,123 @@
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
     </style>
-</head>
-<body>
-    <div id="app">
-        <v-app>
-            <template v-if="!user">
-                <!-- หน้า Login -->
-                <v-container class="full-height login-bg d-flex justify-center align-center">
-                    <v-card class="pa-5 text-center" elevation="10" style="opacity: 0.9;">
-                        <h1 class="text-shadow">Welcome to Classroom Check-in</h1>
-                        <p class="mb-4">Please login to continue</p>
-                        <v-btn @click="google_login" color="green" block>
-                            Login with Google
-                        </v-btn>
-                    </v-card>
-                </v-container>
-            </template>
+    </head>
+    <body>
+        <div id="app">
+            <v-app>
+                <template v-if="!user">
+                    <!-- หน้า Login -->
+                    <v-container
+                        class="full-height login-bg d-flex justify-center align-center">
+                        <v-card class="pa-5 text-center" elevation="10"
+                            style="opacity: 0.9;">
+                            <h1 class="text-shadow">Welcome to Classroom
+                                Check-in</h1>
+                            <p class="mb-4">Please login to continue</p>
+                            <v-btn @click="google_login" color="green" block>
+                                Login with Google
+                            </v-btn>
+                        </v-card>
+                    </v-container>
+                </template>
 
-            <template v-else>
-                <v-container fluid class="full-height">
-                    <v-row class="fill-height">
-                        <!-- Sidebar เมนูทางซ้าย -->
-                        <v-col cols="12" md="3" class="pa-4" style="background-color: #f4f4f9;">
-                            <v-card class="pa-3" elevation="3">
-                                <v-avatar class="user-avatar" v-if="user">
-                                    <img :src="user.photoURL" class="rounded-circle" />
-                                </v-avatar>
-                                <div v-if="user" class="user-details mt-3">
-                                    <strong>{{ user.displayName }}</strong>
-                                    <p>{{ user.email }}</p>
-                                    <p>Status: 
-                                        <span :class="userStatus === 1 ? 'text-blue' : 'text-green'">
-                                            {{ userStatus === 1 ? 'Teacher' : 'Student' }}
-                                        </span>
-                                    </p>
-                                </div>
-                                <!-- ปุ่มเมนู -->
-                                <v-divider class="mt-3 mb-3"></v-divider>
-                                <v-btn v-if="userStatus === 1" color="primary" block class="mb-2" @click="goToCreateClassroom">
-                                    สร้างวิชาเรียน
-                                </v-btn>
-                                <v-btn @click="google_logout" color="red" block class="mb-2">
-                                    Logout
-                                </v-btn>
-                            </v-card>
-                        </v-col>
+                <template v-if="user && userStatus === null">
+                    <v-container
+                        class="full-height d-flex justify-center align-center">
+                        <v-card class="pa-5 text-center" elevation="10"
+                            style="opacity: 0.9;">
+                            <h2 class="text-shadow">กรุณาเลือกสถานะของคุณ</h2>
+                            <p
+                                class="mb-4">เลือกว่าคุณเป็นอาจารย์หรือนักศึกษา</p>
+                            <v-btn color="blue" block class="mb-2"
+                                @click="setUserStatus(1)">ฉันเป็นอาจารย์</v-btn>
+                            <v-btn color="green" block
+                                @click="setUserStatus(2)">ฉันเป็นนักศึกษา</v-btn>
+                        </v-card>
+                    </v-container>
+                </template>
 
-                        <!-- แสดงรายละเอียดวิชาเรียน -->
-                        <v-col cols="12" md="9" class="pa-4">
-                            <v-container fluid>
-                                <v-row>
-                                    <v-col cols="12" md="6" v-for="classroom in classrooms" :key="classroom.id">
-                                        <v-card elevation="2">
-                                            <v-img :src="classroom.image" height="200px"></v-img>
-                                            <v-card-title>{{ classroom.name }}</v-card-title>
-                                            <v-card-subtitle>{{ classroom.teacher }}</v-card-subtitle>
-                                            <v-card-actions>
-                                                <v-btn color="blue" @click="goToEditPage(classroom.id)">Edit</v-btn>
-                                            </v-card-actions>
-                                        </v-card>
-                                    </v-col>
-                                </v-row>
-                            </v-container>
-                        </v-col>
-                    </v-row>
-                </v-container>
-            </template>
-        </v-app>
-    </div>
+                <template v-else>
+                    <v-container fluid class="full-height">
+                        <v-row class="fill-height">
+                            <!-- Sidebar เมนูทางซ้าย -->
+                            <v-col cols="12" md="3" class="pa-4"
+                                style="background-color: #f4f4f9;">
+                                <v-card class="pa-3" elevation="3" style="text-align: center;">
+                                    <v-avatar v-if="user" size="100" class="d-inline-block">
+                                        <img :src="user.photoURL" class="rounded-0" style="width: 100px; height: 100px; object-fit: cover;" />
+                                    </v-avatar>
+                                    
+                                    <div v-if="user" class="user-details mt-3">
+                                        <strong>{{ user.displayName }}</strong>
+                                        <p>{{ user.email }}</p>
+                                        <p>Status:
+                                            <span :class="userStatus === 1 ? 'text-blue' : 'text-green'">
+                                                {{ userStatus === 1 ? 'Teacher' : 'Student' }}
+                                            </span>
+                                        </p>
+                                    </div>
+                                    
+                                    <!-- ปุ่มเมนู -->
+                                    <v-divider class="mt-3 mb-3"></v-divider>
+                                    <v-btn v-if="userStatus === 1"
+                                        color="primary" block class="mb-2"
+                                        @click="goToCreateClassroom">
+                                        สร้างวิชาเรียน
+                                    </v-btn>
+                                    <v-btn @click="google_logout" color="red" block class="mb-2">
+                                        Logout
+                                    </v-btn>
+                                </v-card>
+                                
+                            </v-col>
 
-    <script>
+                            <v-row v-if="classrooms.length === 0"
+                                class="fill-height" align="center"
+                                justify="center">
+                                <v-col cols="12" class="text-center">
+                                    <p
+                                        class="text-h6 text-grey">ไม่มีคลาสเรียนที่เข้าร่วม</p>
+                                </v-col>
+                            </v-row>
+
+                            <!-- แสดงรายละเอียดวิชาเรียน -->
+                            <v-col cols="12" md="9" class="pa-4">
+                                <v-container fluid>
+                                    <v-row>
+                                        <v-col cols="12" md="6"
+                                            v-for="classroom in classrooms"
+                                            :key="classroom.id">
+                                            <v-card elevation="2">
+                                                <v-img :src="classroom.image"
+                                                    height="200px"></v-img>
+                                                <v-card-title>{{ classroom.name
+                                                    }}</v-card-title>
+                                                <v-card-subtitle>{{
+                                                    classroom.teacher
+                                                    }}</v-card-subtitle>
+                                                <v-card-subtitle>{{
+                                                    classroom.subjectCode
+                                                    }}</v-card-subtitle>
+                                                <v-card-actions>
+                                                    <v-btn color="blue"
+                                                        @click="goToEditPage(classroom.id)">Manage</v-btn>
+                                                    <v-btn color="red"
+                                                        @click="confirmDeleteClassroom(classroom.id)">Delete</v-btn>
+                                                </v-card-actions>
+                                            </v-card>
+                                        </v-col>
+                                    </v-row>
+                                </v-container>
+                            </v-col>
+
+                        </v-row>
+                    </v-container>
+                </template>
+            </v-app>
+        </div>
+
+        <script>
         const firebaseConfig = {
             apiKey: "AIzaSyCsB5O8vwk_EhCmME6Zg6CqN1gVFl4eJik",
             authDomain: "projectwebm2025.firebaseapp.com",
@@ -121,33 +175,114 @@
                 google_login() {
                     const provider = new firebase.auth.GoogleAuthProvider();
                     firebase.auth().signInWithPopup(provider).then(result => {
+                        console.log("✅ Login success:", result.user);
                         this.user = result.user;
-                        this.checkUserStatus();
-                    });
+
+                        if (this.user) {
+                            const userRef = db.collection("users").doc(this.user.uid);
+                            userRef.get().then(doc => {
+                                if (!doc.exists) {
+                                    console.log("🟡 User does not exist in Firestore, asking for status...");
+                                } else {
+                                    console.log("✅ User found in Firestore:", doc.data());
+                                    this.userStatus = doc.data().status;
+                                    this.loadClassrooms();
+                                }
+                            }).catch(error => console.error("❌ Firestore error:", error));
+                        }
+                    }).catch(error => console.error("❌ Login error:", error));
                 },
                 google_logout() {
                     firebase.auth().signOut().then(() => {
                         this.user = null;
                         this.userStatus = null;
+                        this.classrooms = [];
                     });
+                },
+                setUserStatus(status) {
+                    this.userStatus = status;
+                    db.collection('users').doc(this.user.uid).set({
+                        status: status,
+                        name: this.user.displayName,
+                        email: this.user.email,
+                        photo: this.user.photoURL
+                }).then(() => {
+                        console.log("✅ User data saved:", status);
+                    this.loadClassrooms();
+                    }).catch(error => console.error("❌ Error saving user data:", error));
                 },
                 checkUserStatus() {
                     if (this.user) {
-                        db.collection('users').doc(this.user.uid).collection('classroom').doc('status').get()
+                        db.collection('users').doc(this.user.uid).get()
                             .then(doc => {
                                 if (doc.exists) {
                                     this.userStatus = doc.data().status;
+                                    this.loadClassrooms();
+                                } else {
+                                    this.userStatus = null;
                                 }
                             });
                     }
                 },
                 goToCreateClassroom() {
-    window.location.href = 'edit.html';
-},
-
+                    window.location.href = 'create.html';
+                },
                 goToEditPage(classroomId) {
-                    alert("ไปหน้า Edit ของ Classroom ID: " + classroomId);
-                }
+                    window.location.href = `manage.html?classroomId=${classroomId}`;
+                },
+                async loadClassrooms() {
+                    if (!this.user) return;
+
+                    if (this.userStatus === 1) {
+                        // 📌 ครู: เห็นเฉพาะห้องที่ตัวเองสร้าง
+                        db.collection('classrooms')
+                            .where('userId', '==', this.user.uid)
+                            .get()
+                            .then(snapshot => {
+                                this.classrooms = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                            });
+                    } else if (this.userStatus === 2) {
+                        // 📌 นักเรียน: ดึงห้องจาก users/{uid}/classroom
+                        db.collection('users')
+                            .doc(this.user.uid)
+                            .collection('classroom')
+                            .get()
+                            .then(snapshot => {
+                                const joinedClassrooms = snapshot.docs.map(doc => doc.id);
+
+                                if (joinedClassrooms.length === 0) {
+                                    this.classrooms = []; // ไม่มีห้องที่เข้าร่วม
+                                } else {
+                                    // ดึงข้อมูลห้องเรียนที่นักเรียนเข้าร่วม
+                                    db.collection('classrooms')
+                                        .where(firebase.firestore.FieldPath.documentId(), 'in', joinedClassrooms)
+                                        .get()
+                                        .then(classroomSnapshot => {
+                                            this.classrooms = classroomSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                                        });
+                                }
+                            });
+                    }
+                },
+                confirmDeleteClassroom(classroomId) {
+        if (confirm("Are you sure you want to delete this classroom?")) {
+            this.deleteClassroom(classroomId);
+        }
+    },
+    deleteClassroom(classroomId) {
+        // ลบ Classroom จาก Firestore
+        db.collection('classrooms').doc(classroomId).delete()
+            .then(() => {
+                console.log("✅ Classroom deleted:", classroomId);
+                // อัปเดตข้อมูลในหน้าจอ
+                this.loadClassrooms();
+            })
+            .catch(error => console.error("❌ Error deleting classroom:", error));
+             }
+
+
+
+
             },
             mounted() {
                 firebase.auth().onAuthStateChanged(user => {
@@ -156,12 +291,16 @@
                         this.checkUserStatus();
                     }
                 });
-                db.collection('classrooms').get().then(snapshot => {
-                    this.classrooms = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                });
+            },
+            watch: {
+                userStatus(newStatus) {
+                    if (this.user && newStatus !== null) {
+                        this.loadClassrooms();
+                    }
+                }
             }
         }).use(vuetify).mount("#app");
     </script>
-</body>
-</html>
 
+    </body>
+</html>
