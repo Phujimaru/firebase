@@ -102,12 +102,11 @@
                                 
                             </v-col>
 
-                            <v-row v-if="classrooms.length === 0"
-                                class="fill-height" align="center"
-                                justify="center">
+                            <v-row v-if="classrooms.length === 0" class="fill-height" align="center" justify="center">
                                 <v-col cols="12" class="text-center">
-                                    <p
-                                        class="text-h6 text-grey">ไม่มีคลาสเรียนที่เข้าร่วม</p>
+                                    <p v-if="userStatus !== null">
+                                        {{ userStatus === 1 ? 'ไม่มีคลาสเรียนที่เปิด' : 'ไม่มีคลาสเรียนที่เข้าร่วม' }}
+                                      </p>                                      
                                 </v-col>
                             </v-row>
 
@@ -172,6 +171,16 @@
                 };
             },
             methods: {
+                 getUserStatus() {
+            const userId = "your-user-id"; 
+            db.collection("users").doc(userId).get().then(doc => {
+                if (doc.exists) {
+                    this.userStatus = doc.data().status;
+                }
+            }).catch(error => {
+                console.error("❌ ไม่สามารถดึงสถานะผู้ใช้ได้:", error);
+            });
+        },
                 google_login() {
                     const provider = new firebase.auth.GoogleAuthProvider();
                     firebase.auth().signInWithPopup(provider).then(result => {
