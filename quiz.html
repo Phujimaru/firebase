@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Quiz</title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <v-app>
+            <v-container>
+                <v-card class="pa-5" elevation="10">
+                    <v-text-field v-model="question" label="Question" outlined dense></v-text-field>
+                    <v-text-field v-model="option1" label="Option 1" outlined dense></v-text-field>
+                    <v-text-field v-model="option2" label="Option 2" outlined dense></v-text-field>
+                    <v-text-field v-model="option3" label="Option 3" outlined dense></v-text-field>
+                    <v-text-field v-model="option4" label="Option 4" outlined dense></v-text-field>
+                    <v-select v-model="correctAnswer" :items="['Option 1', 'Option 2', 'Option 3', 'Option 4']" label="Correct Answer" outlined dense></v-select>
+                    <v-text-field v-model="timeLimit" label="Time Limit (minutes)" outlined dense type="number"></v-text-field>
+                    <v-btn @click="submitQuiz" color="green" block>Submit Quiz</v-btn>
+                </v-card>
+            </v-container>
+        </v-app>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCsB5O8vwk_EhCmME6Zg6CqN1gVFl4eJik",
+            authDomain: "projectwebm2025.firebaseapp.com",
+            projectId: "projectwebm2025",
+            storageBucket: "projectwebm2025.firebasestorage.app",
+            messagingSenderId: "316415805582",
+            appId: "1:316415805582:web:582b27fa7d4f8974bee1df",
+            measurementId: "G-EC8J8RGC0T"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const { createApp, ref } = Vue;
+        const vuetify = Vuetify.createVuetify();
+
+        createApp({
+            data() {
+                return {
+                    classroomId: new URLSearchParams(window.location.search).get('classroomId'), // รับ classroomId จาก URL
+                    question: '',
+                    option1: '',
+                    option2: '',
+                    option3: '',
+                    option4: '',
+                    correctAnswer: '',
+                    timeLimit: 0,
+                    status: 0, // ค่า default สำหรับ status
+                    user: null, // ตัวแปรสำหรับเก็บข้อมูลผู้ใช้
+                };
+            },
+            methods: {
+                async checkUserLogin() {
+                    // ตรวจสอบสถานะการเข้าสู่ระบบ
+                    firebase.auth().onAuthStateChanged(user => {
+                        if (user) {
+                            this.user = user;
+                            // ถ้ามีการเข้าสู่ระบบแล้ว ให้โหลดข้อมูลควิซ
+                            console.log("ผู้ใช้เข้าสู่ระบบแล้ว:", user);
+                        } else {
+                            alert("กรุณาเข้าสู่ระบบก่อน!");
+                            window.location.href = "index.html"; // ถ้ายังไม่ได้เข้าสู่ระบบ ให้เปลี่ยนเส้นทางไปที่หน้า index
+                        }
+                    });
+                },
+
+                async submitQuiz() {
+                    if (!this.question || !this.option1 || !this.option2 || !this.option3 || !this.option4 || !this.correctAnswer || !this.timeLimit) {
+                        alert("กรุณากรอกข้อมูลให้ครบถ้วน!");
+                        return;
+                    }
+
+                    const quizData = {
+                        question: this.question,
+                        options: {
+                            option1: this.option1,
+                            option2: this.option2,
+                            option3: this.option3,
+                            option4: this.option4,
+                        },
+                        correctAnswer: this.correctAnswer,
+                        timeLimit: this.timeLimit * 60, // แปลงเวลาเป็นวินาที
+                        status: this.status, // เพิ่ม status ที่ส่งไปยัง Firestore
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    };
+
+                    try {
+                        await db.collection("classrooms")
+                            .doc(this.classroomId)
+                            .collection("quiz")
+                            .add(quizData);
+
+                        alert("✅ Quiz ถูกสร้างเรียบร้อยแล้ว!");
+                        
+                        // เปลี่ยนเส้นทางไปหน้า index.html หลังจากสร้าง quiz สำเร็จ
+                        window.location.href = "index.html"; 
+                    } catch (error) {
+                        console.error("❌ เกิดข้อผิดพลาดในการสร้าง Quiz:", error);
+                    }
+                },
+                resetForm() {
+                    this.question = '';
+                    this.option1 = '';
+                    this.option2 = '';
+                    this.option3 = '';
+                    this.option4 = '';
+                    this.correctAnswer = '';
+                    this.timeLimit = 0;
+                    this.status = 0; // รีเซ็ตค่า status
+                }
+            },
+            created() {
+                this.checkUserLogin(); // ตรวจสอบการ login เมื่อโหลดหน้าก่อน
+            },
+        }).use(vuetify).mount("#app");
+    </script>
+</body>
+</html>
