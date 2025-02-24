@@ -1,177 +1,254 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>Classroom Check-in</title>
-        <script
-            src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-        <script
-            src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-        <script
-            src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-        <script
-            src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
-        <link
-            href="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.css"
-            rel="stylesheet" />
-        <script
-            src="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.js"></script>
-        <style>
-        body, html {
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classroom Check-in</title>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
+    <!-- Vue 3 -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+
+    <!-- Vuetify for Material Design -->
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.js"></script>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        @font-face {
+            font-family: hiya;
+            src: url(font/Mitr/Mitr-Light.ttf);
+        }
+        /* Basic reset */
+        body,
+        html {
             height: 100%;
             margin: 0;
             overflow: hidden;
+            font-family: 'hiya', sans-serif;
+            background-color: #fafafa; /* เบาและสบายตา */
         }
+
         .full-height {
             height: 100vh;
         }
+
+        /* Background Image */
         .login-bg {
             background: url('https://source.unsplash.com/1600x900/?classroom') center/cover no-repeat;
+            background-size: cover;
+            filter: brightness(0.7);
         }
-        .text-shadow {
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+
+        /* Center content */
+        .d-flex-center {
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
+
+        /* Card Style */
+        .card-custom {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .card-custom:hover {
+            transform: scale(1.03);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Buttons */
+        .btn-custom {
+            background-color: #004d12;
+            color: white;
+            border-radius: 8px;
+            padding: 12px;
+            font-weight: bold;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .btn-custom:hover {
+            background-color: #006b17;
+        }
+
+        .btn-light-custom {
+            background-color: #1b66b6;
+            color: white;
+            border-radius: 8px;
+            padding: 10px;
+            padding-bottom: 30px;
+            font-weight: bold;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .btn-light-custom:hover {
+            background-color: #004186;
+        }
+
+        /* Header Text */
+        .header-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* Form and Text */
+        .form-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-control {
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+        }
+
+        .v-btn {
+            padding-bottom: 30px;
+            padding: 1px;
+        }
+
+        .navbar-expand-lg {
+            background-color: #1b66b6;
+            color: white;
+            font-size: 25px;
+        }
+
+        
     </style>
-    </head>
-    <body>
-        <div id="app">
-            <v-app>
-                <template v-if="!user">
-                    <!-- หน้า Login -->
-                    <v-container
-                        class="full-height login-bg d-flex justify-center align-center">
-                        <v-card class="pa-5 text-center" elevation="10"
-                            style="opacity: 0.9;">
-                            <h1 class="text-shadow">Welcome to Classroom
-                                Check-in</h1>
-                            <p class="mb-4">Please login to continue</p>
-                            <v-btn @click="google_login" color="green" block>
-                                Login with Google
-                            </v-btn>
-                        </v-card>
-                    </v-container>
-                </template>
+</head>
 
-                <template v-if="user && userStatus === null">
-                    <v-container
-                        class="full-height d-flex justify-center align-center">
-                        <v-card class="pa-5 text-center" elevation="10"
-                            style="opacity: 0.9;">
-                            <h2 class="text-shadow">กรุณาเลือกสถานะของคุณ</h2>
-                            <p
-                                class="mb-4">เลือกว่าคุณเป็นอาจารย์หรือนักศึกษา</p>
-                            <v-btn color="blue" block class="mb-2"
-                                @click="setUserStatus(1)">ฉันเป็นอาจารย์</v-btn>
-                            <v-btn color="green" block
-                                @click="setUserStatus(2)">ฉันเป็นนักศึกษา</v-btn>
-                        </v-card>
-                    </v-container>
-                </template>
-
-                <template v-else>
-                    <v-container fluid class="full-height">
-                        <v-row class="fill-height">
-                            <!-- Sidebar เมนูทางซ้าย -->
-                            <v-col cols="12" md="3" class="pa-4"
-                                style="background-color: #f4f4f9;">
-                                <v-card class="pa-3" elevation="3" style="text-align: center;">
-                                    <v-avatar v-if="user" size="100" class="d-inline-block">
-                                        <img :src="user.photoURL" class="rounded-0" style="width: 100px; height: 100px; object-fit: cover;" />
-                                    </v-avatar>
-                                    
-                                    <div v-if="user" class="user-details mt-3">
-                                        <strong>{{ user.displayName }}</strong>
-                                        <p>{{ user.email }}</p>
-                                        <p>Status:
-                                            <span :class="userStatus === 1 ? 'text-blue' : 'text-green'">
-                                                {{ userStatus === 1 ? 'Teacher' : 'Student' }}
-                                            </span>
-                                        </p>
-                                    </div>
-                                    
-                                    <!-- ปุ่มเมนู -->
-                                    <v-divider class="mt-3 mb-3"></v-divider>
-                                    <v-btn v-if="userStatus === 1"
-                                        color="primary" block class="mb-2"
-                                        @click="goToCreateClassroom">
-                                        สร้างวิชาเรียน
-                                    </v-btn>
-                                    <v-btn @click="google_logout" color="red" block class="mb-2">
-                                        Logout
-                                    </v-btn>
-                                </v-card>
-
-                                <v-card v-if="userStatus === 2" class="pa-3 mt-4" elevation="2">
-                                    <v-text-field v-model="classroomId" label="รหัส Classroom" outlined dense></v-text-field>
-                                    <v-btn color="success" block @click="joinClassroom">
-                                        เข้าร่วมคลาส
-                                    </v-btn>
-                                </v-card>
-
-                                <v-card-actions>
-                                    <v-btn color="green"
-                                        @click="goToProfilePage()">Profile Edit</v-btn>
-                                   
-                                </v-card-actions>
-                        
-                                
-                            </v-col>
-                            
-                            <v-row v-if="classrooms.length === 0" class="fill-height" align="center" justify="center">
-                                <v-col cols="12" class="text-center">
-                                    <p v-if="userStatus !== null">
-                                        {{ userStatus === 1 ? 'ไม่มีคลาสเรียนที่เปิด' : 'ไม่มีคลาสเรียนที่เข้าร่วม' }}
-                                      </p>                                      
-                                </v-col>
-                            </v-row>
-                            
-
-                            <!-- แสดงรายละเอียดวิชาเรียน -->
-                            <v-col cols="12" md="9" class="pa-4">
-                                <v-container fluid>
-                                    <v-row>
-                                        <v-col cols="12" md="6"
-                                            v-for="classroom in classrooms"
-                                            :key="classroom.id">
-                                            <v-card elevation="2">
-                                                <v-img :src="classroom.image"
-                                                    height="200px"></v-img>
-                                                <v-card-title>{{ classroom.name
-                                                    }}</v-card-title>
-                                                <v-card-subtitle>{{
-                                                    classroom.teacher
-                                                    }}</v-card-subtitle>
-                                                <v-card-subtitle>{{
-                                                    classroom.subjectCode
-                                                    }}</v-card-subtitle>
-                                                <v-card-actions v-if="userStatus === 1">
-                                                    <v-btn color="blue"
-                                                        @click="goToEditPage(classroom.id)">Manage</v-btn>
-                                                    <v-btn color="red"
-                                                        @click="confirmDeleteClassroom(classroom.id)">Delete</v-btn>
-                                                    <v-btn color="purple" 
-                                                        @click="goToQuizPage(classroom.id)">Quiz</v-btn>
-                                                </v-card-actions>
-
-                                                <v-card-actions v-if="userStatus === 2">
-                                                    <v-btn color="blue"
-                                                        @click="goToEditPage(classroom.id)">View</v-btn>
-                                                        <v-btn color="red" @click="exitClassroom(classroom.id)">
-                                                            Exit
-                                                        </v-btn>
-                                                        
-                                
-                                                </v-card-actions>
-                                            </v-card>
-                                        </v-col>
-                                    </v-row>
-                                </v-container>
-                            </v-col>
-
-                        </v-row>
-                    </v-container>
-                </template>
-            </v-app>
+<body>
+    
+    <div id="app">
+        <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a>Classroom Check-in</a>
         </div>
+    </nav>
+        <v-app>
+            <!-- Login Template -->
+            <template v-if="!user">
+                <v-container class="full-height login-bg d-flex-center">
+                    <v-card class="pa-5 text-center card-custom">
+                        <h1 class="header-title text-shadow">Welcome to Classroom Check-in</h1>
+                        <p class="mb-4">Please login to continue</p>
+                        <v-btn @click="google_login" class="btn-custom">
+                            Login with Google
+                        </v-btn>
+                    </v-card>
+                </v-container>
+            </template>
+            
+
+            <!-- Status Selection Template -->
+            <template v-if="user && userStatus === null">
+                <v-container class="full-height d-flex-center">
+                    <v-card class="pa-5 text-center card-custom">
+                        <h2 class="header-title text-shadow">กรุณาเลือกสถานะของคุณ</h2>
+                        <p class="mb-4">เลือกว่าคุณเป็นอาจารย์หรือนักศึกษา</p>
+                        <v-btn color="primary" block class="mb-2" @click="setUserStatus(1)">ฉันเป็นอาจารย์</v-btn>
+                        <v-btn color="success" block @click="setUserStatus(2)">ฉันเป็นนักศึกษา</v-btn>
+                    </v-card>
+                </v-container>
+            </template>
+
+            <!-- Main Template after login -->
+            <template v-else>
+                <v-container fluid class="full-height">
+                    <v-row class="fill-height">
+                        <!-- Sidebar -->
+                        <v-col cols="12" md="3" class="pa-4" style="background-color: #f4f4f9;">
+                            <v-card class="pa-3 card-custom" elevation="3" style="text-align: center;">
+                                <v-avatar v-if="user" size="100" class="d-inline-block">
+                                    <img :src="user.photoURL" class="rounded-0" style="width: 100px; height: 100px; object-fit: cover;" />
+                                </v-avatar>
+                                <div v-if="user" class="user-details mt-3">
+                                    <strong>{{ user.displayName }}</strong>
+                                    <p>{{ user.email }}</p>
+                                    <p>Status:
+                                        <span :class="userStatus === 1 ? 'text-blue' : 'text-green'">
+                                            {{ userStatus === 1 ? 'Teacher' : 'Student' }}
+                                        </span>
+                                    </p>
+                                </div>
+                                <v-divider class="mt-3 mb-3"></v-divider>
+                                <v-btn v-if="userStatus === 1" class="btn-light-custom mb-2" @click="goToCreateClassroom">
+                                    สร้างวิชาเรียน
+                                </v-btn>
+                                <v-btn class="btn-light-custom" @click="goToProfilePage()">Profile Edit</v-btn>
+                                
+                            </v-card>
+
+                            <v-card v-if="userStatus === 2" class="pa-3 mt-4 card-custom" elevation="2">
+                                <v-text-field v-model="classroomId" label="รหัส Classroom" outlined dense class="form-control"></v-text-field>
+                                <v-btn color="success" block @click="joinClassroom">เข้าร่วมคลาส</v-btn>
+                            </v-card>
+
+                            <v-card-actions>
+                                <v-btn @click="google_logout" class="btn-light-custom mb-2">Logout</v-btn>
+                            </v-card-actions>
+                        </v-col>
+
+                        <!-- Main Content -->
+                        <v-col cols="12" md="9" class="pa-4">
+                            <v-container fluid>
+                                <v-row v-if="classrooms.length === 0" align="center" justify="center">
+                                    <v-col cols="12" class="text-center">
+                                        <p v-if="userStatus !== null">
+                                            {{ userStatus === 1 ? 'ไม่มีคลาสเรียนที่เปิด' : 'ไม่มีคลาสเรียนที่เข้าร่วม' }}
+                                        </p>
+                                    </v-col>
+                                </v-row>
+
+                                <!-- Classroom Details -->
+                                <v-row v-if="classrooms.length > 0" justify="start">
+                                    <v-col v-for="classroom in classrooms" :key="classroom.id" cols="12" md="6">
+                                        <v-card class="pa-4 card-custom" elevation="2">
+                                            <v-img :src="classroom.image" height="200px"></v-img>
+                                            <v-card-title>{{ classroom.name }}</v-card-title>
+                                            <v-card-subtitle>{{ classroom.teacher }}</v-card-subtitle>
+                                            <v-card-subtitle>{{ classroom.subjectCode }}</v-card-subtitle>
+                                
+                                            <v-card-actions v-if="userStatus === 1">
+                                                <v-btn color="blue" @click="goToEditPage(classroom.id)">Manage</v-btn>
+                                                <v-btn color="red" @click="confirmDeleteClassroom(classroom.id)">Delete</v-btn>
+                                                <v-btn color="purple" @click="goToQuizPage(classroom.id)">Quiz</v-btn>
+                                            </v-card-actions>
+                                
+                                            <v-card-actions v-if="userStatus === 2">
+                                                <v-btn color="blue" @click="goToEditPage(classroom.id)">View</v-btn>
+                                                <v-btn color="red" @click="exitClassroom(classroom.id)">Exit</v-btn>
+                                            </v-card-actions>
+                                        </v-card>
+                                    </v-col>
+                                </v-row>
+                                
+                            </v-container>
+                        </v-col>
+                    </v-row>
+                </v-container>
+            </template>
+        </v-app>
+    </div>
 
         <script>
         const firebaseConfig = {
