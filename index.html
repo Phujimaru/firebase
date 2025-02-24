@@ -148,6 +148,8 @@
                                                         @click="goToEditPage(classroom.id)">Manage</v-btn>
                                                     <v-btn color="red"
                                                         @click="confirmDeleteClassroom(classroom.id)">Delete</v-btn>
+                                                    <v-btn color="purple" 
+                                                        @click="goToQuizPage(classroom.id)">Quiz</v-btn>
                                                 </v-card-actions>
 
                                                 <v-card-actions v-if="userStatus === 2">
@@ -296,7 +298,9 @@
     }
 },
 
-
+goToQuizPage(classroomId) {
+    window.location.href = `quiz.html?classroomId=${classroomId}`;
+},
 
 
                 getUserStatus() {
