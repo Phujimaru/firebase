@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Profile</title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font/css/materialdesignicons.min.css" rel="stylesheet">
+
+</head>
+<style>
+ 
+    /* ตั้งค่าสีพื้นหลังของ v-app ให้เป็นสีเทาอ่อน */
+    #editProfileApp .v-application {
+        background-color: #f8f8f8; /* สีเทาอ่อน */
+    }
+
+     /* ปรับขนาดตัวอักษรของ v-card-title */
+     .custom-card-title {
+        font-size: 25px; /* ปรับขนาดตัวอักษรตามต้องการ */
+    }
+
+ 
+</style>
+
+<body>
+    <div id="editProfileApp">
+        <v-app>
+            <v-container>
+                <v-card>
+                    <v-card-title class="custom-card-title">
+                        <i class="fa-solid fa-user-pen"></i> Edit Profile
+                    </v-card-title>
+
+
+                    <v-card-text>
+                        <v-row justify="center" class="mb-4">
+                            <v-avatar size="180">
+                                <img :src="userProfile.photo || 'https://via.placeholder.com/100'"
+                                    alt="Profile Picture">
+                            </v-avatar>
+                        </v-row>
+                        <v-text-field v-model="userProfile.name" label="Full Name"></v-text-field>
+                        <v-text-field v-model="userProfile.email" label="Email "></v-text-field>
+                        <v-text-field v-model="userProfile.photo" label="Profile Photo URL"></v-text-field>
+                    </v-card-text>
+                    <v-card-actions>
+                        <v-btn color="green" @click="updateUserProfile">
+                            <v-icon left>mdi-pencil</v-icon>
+                            Change
+                        </v-btn>
+
+                        <v-btn color="red lighten-1" @click="goBack"> <v-icon
+                                icon="mdi-minus-circle"></v-icon>Cancel</v-btn>
+                    </v-card-actions>
+                </v-card>
+            </v-container>
+        </v-app>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCsB5O8vwk_EhCmME6Zg6CqN1gVFl4eJik",
+            authDomain: "projectwebm2025.firebaseapp.com",
+            projectId: "projectwebm2025",
+            storageBucket: "projectwebm2025.firebasestorage.app",
+            messagingSenderId: "316415805582",
+            appId: "1:316415805582:web:582b27fa7d4f8974bee1df",
+            measurementId: "G-EC8J8RGC0T"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const vuetify = Vuetify.createVuetify();
+
+        const editProfileApp = Vue.createApp({
+            data() {
+                return {
+                    userProfile: {
+                        id: '',
+                        name: '',
+                        email: '',
+                        photo: ''
+                    }
+                };
+            },
+            mounted() {
+                firebase.auth().onAuthStateChanged(user => {
+                    if (user) {
+                        this.userProfile.id = user.uid;
+                        this.userProfile.email = user.email;
+                        this.userProfile.name = user.displayName;
+                        this.userProfile.photo = user.photoURL;
+                        this.loadUserProfile(user.uid);
+                    } else {
+                        alert("กรุณาเข้าสู่ระบบ");
+                        window.location.href = "login.html";
+                    }
+                });
+            },
+            methods: {
+                async loadUserProfile(uid) {
+                    try {
+                        const userDoc = await db.collection("users").doc(uid).get();
+                        if (userDoc.exists) {
+                            this.userProfile.name = userDoc.data().name || this.userProfile.name;
+                            this.userProfile.photo = userDoc.data().photo || this.userProfile.photo;
+                            this.userProfile.email = userDoc.data().email || this.userProfile.email;
+                        }
+                    } catch (error) {
+                        console.error("Error loading user profile:", error);
+                    }
+                },
+
+                async updateUserProfile() {
+                    if (!this.userProfile.id) return;
+                    try {
+                        const user = firebase.auth().currentUser;
+
+                        // ✅ อัปเดตข้อมูลใน Firestore
+                        await db.collection("users").doc(this.userProfile.id).set({
+                            name: this.userProfile.name,
+                            photo: this.userProfile.photo,
+                            email: this.userProfile.email  // 🔥 บันทึกอีเมลลง Firestore แทน
+                        }, { merge: true });
+
+                        // ✅ อัปเดตเฉพาะ displayName และ photo ใน Firebase Auth
+                        await user.updateProfile({
+                            displayName: this.userProfile.name,
+                            photoURL: this.userProfile.photo
+                        });
+
+                        alert("อัปเดตโปรไฟล์สำเร็จ!");
+                        setTimeout(() => {
+                            window.location.href = "index.html";
+                        }, 1000);
+                    } catch (error) {
+                        console.error("Error updating profile:", error);
+                        alert("เกิดข้อผิดพลาดในการอัปเดต");
+                    }
+                },
+                goBack() {
+                    window.location.href = "index.html";
+                }
+            }
+        });
+
+        editProfileApp.use(vuetify).mount("#editProfileApp");
+    </script>
+</body>
+
+</html>
