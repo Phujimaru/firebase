@@ -43,10 +43,12 @@
 
                     <v-card-text>
                         <v-row justify="center" class="mb-4">
-                            <v-avatar size="180">
-                                <img :src="userProfile.photo || 'https://via.placeholder.com/100'"
+                            <v-avatar  size="100" class="d-inline-block">
+                                <img :src="userProfile.photo || 'https://via.placeholder.com/100'"class="rounded-0"
+                                style="width: 100px; height: 100px; object-fit: cover;" 
                                     alt="Profile Picture">
                             </v-avatar>
+
                         </v-row>
                         <v-text-field v-model="userProfile.name" label="Full Name"></v-text-field>
                         <v-text-field v-model="userProfile.email" label="Email "></v-text-field>
