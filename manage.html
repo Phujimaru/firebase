@@ -273,33 +273,56 @@
             });
         }
 
-        function addUserToClass(userId) {
-            db.collection("users").doc(userId).get().then(userDoc => {
-                if (userDoc.exists) {
-                    const userData = userDoc.data();
-                    const studentData = {
-                        userId: userId,
-                        name: userData.name || "No Name",
-                        email: userData.email || "No Email",
-                        photo: userData.photo || "default-profile.png",
-                        status: 2
-                    };
+         function addUserToClass(userId) {
+    db.collection("users").doc(userId).get().then(userDoc => {
+        if (userDoc.exists) {
+            const userData = userDoc.data();
+            const studentData = {
+                userId: userId,
+                name: userData.name || "No Name",
+                email: userData.email || "No Email",
+                photo: userData.photo || "default-profile.png",
+                status: 2
+            };
 
-                    db.collection("classrooms").doc(classroomId)
-                        .collection("students").doc(userId)
-                        .set(studentData)
+            // เพิ่มใน classrooms/{classroomId}/students/{userId}
+            db.collection("classrooms").doc(classroomId)
+                .collection("students").doc(userId)
+                .set(studentData)
+                .then(() => {
+                    console.log("✅ เพิ่มนักเรียนในคลาสสำเร็จ");
+
+                    // ✅ เพิ่ม classroom เข้าไปใน users/{userId}/classrooms/{classroomId}
+                    db.collection("users").doc(userId)
+                        .collection("classrooms").doc(classroomId)
+                        .set({
+                            classroomId: classroomId,
+                            name: userData.name || "No Name",
+                            teacher: userData.teacher || "Unknown Teacher",
+                            subjectCode: userData.subjectCode || "No Code",
+                            image: userData.image || "",  
+                            joinedAt: firebase.firestore.FieldValue.serverTimestamp() // เวลาที่เข้าร่วม
+                        })
                         .then(() => {
+                            console.log("✅ เพิ่มคลาสลงในข้อมูลนักเรียนสำเร็จ");
                             loadClassroomUsers();
-                            loadUsers();
+                            loadUsers(); // รีโหลด user list เพื่ออัปเดตปุ่ม Add
                         })
                         .catch(error => {
-                            console.error("❌ เพิ่มผู้ใช้ไม่สำเร็จ:", error);
+                            console.error("❌ เพิ่มข้อมูลคลาสใน users ไม่สำเร็จ:", error);
                         });
-                }
-            }).catch(error => {
-                console.error("❌ ดึงข้อมูลผู้ใช้ล้มเหลว:", error);
-            });
+
+                })
+                .catch(error => {
+                    console.error("❌ เพิ่มผู้ใช้ใน classrooms ไม่สำเร็จ:", error);
+                });
+        } else {
+            console.error("❌ ไม่พบข้อมูลผู้ใช้!");
         }
+    }).catch(error => {
+        console.error("❌ ดึงข้อมูลผู้ใช้ล้มเหลว:", error);
+    });
+}
 
         function loadClassroomUsers() {
             const userList = document.getElementById("classUsersList");
