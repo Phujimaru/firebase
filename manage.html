@@ -240,7 +240,10 @@
             }
         });
 
-           // สร้าง QR Code โดยใช้ข้อความของรหัสคลาสรูม
+        function generateQRCode() {
+    const classroomIdText = `Classroom ID: ${classroomId}`; // ข้อความเป็นรหัสคลาสรูม
+
+    // สร้าง QR Code โดยใช้ข้อความของรหัสคลาสรูม
     new QRCode(document.getElementById("qrcode"), {
         text: classroomIdText,
         width: 200,
