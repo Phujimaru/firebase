@@ -240,25 +240,17 @@
             }
         });
 
-        function generateQRCode() {
-            const inviteUrl = `${window.location.origin}/join.html?classroomId=${classroomId}&status=2`;
-            new QRCode(document.getElementById("qrcode"), {
-                text: inviteUrl,
-                width: 200,
-                height: 200
-            });
-        }
-        function generateQRCode() {
-                const inviteUrl = `${window.location.origin}/join.html?classroomId=${classroomId}&status=2`;
-                new QRCode(document.getElementById("qrcode"), {
-                text: inviteUrl,
-                width: 200,
-                height: 200
-                });
+           // สร้าง QR Code โดยใช้ข้อความของรหัสคลาสรูม
+    new QRCode(document.getElementById("qrcode"), {
+        text: classroomIdText,
+        width: 200,
+        height: 200
+    });
 
-                // แสดง Classroom ID ใต้ QR Code
-                document.getElementById("classroom-id-display").innerText = `Classroom ID: ${classroomId}`;
+    // แสดง Classroom ID ใต้ QR Code
+    document.getElementById("classroom-id-display").innerText = classroomIdText;
 }
+
 
 
         function loadUsers() {
