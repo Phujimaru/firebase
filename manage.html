@@ -195,7 +195,7 @@
         </div>
     </div>
 
-    <script>
+ <script>
         const firebaseConfig = {
             apiKey: "AIzaSyCsB5O8vwk_EhCmME6Zg6CqN1gVFl4eJik",
             authDomain: "projectwebm2025.firebaseapp.com",
@@ -249,6 +249,18 @@
                 height: 200
             });
         }
+        function generateQRCode() {
+                const inviteUrl = `${window.location.origin}/join.html?classroomId=${classroomId}&status=2`;
+                new QRCode(document.getElementById("qrcode"), {
+                text: inviteUrl,
+                width: 200,
+                height: 200
+                });
+
+                // แสดง Classroom ID ใต้ QR Code
+                document.getElementById("classroom-id-display").innerText = `Classroom ID: ${classroomId}`;
+}
+
 
         function loadUsers() {
             const usersTable = document.getElementById("usersTable");
@@ -257,8 +269,9 @@
             db.collection("users").get().then(snapshot => {
                 snapshot.forEach(userDoc => {
                     const userData = userDoc.data();
-                    if (userData.status !== 2) return;
+                    if (userData.status !== 2) return; // แสดงเฉพาะผู้ใช้ที่มี status = 2
 
+                    // ตรวจสอบว่าอยู่ใน classroom แล้วหรือยัง
                     db.collection("classrooms").doc(classroomId).collection("students").doc(userDoc.id).get().then(classUserDoc => {
                         const row = document.createElement("tr");
                         row.innerHTML = `
@@ -273,7 +286,7 @@
             });
         }
 
-         function addUserToClass(userId) {
+        function addUserToClass(userId) {
     db.collection("users").doc(userId).get().then(userDoc => {
         if (userDoc.exists) {
             const userData = userDoc.data();
@@ -324,6 +337,7 @@
     });
 }
 
+
         function loadClassroomUsers() {
             const userList = document.getElementById("classUsersList");
             userList.innerHTML = "";
@@ -332,6 +346,7 @@
                 .collection("students").where("status", "==", 2)
                 .get()
                 .then(snapshot => {
+                    userList.innerHTML = "";
                     snapshot.forEach(doc => {
                         let data = doc.data();
                         let name = data.name || "No Name";
@@ -339,12 +354,14 @@
 
                         userList.innerHTML += `
                             <li style="display: flex; align-items: center; margin-bottom: 10px;">
-                                <img src="${photo}" alt="Profile" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px;">
+                                <img src="${photo}" alt="Profile" 
+                                     style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px;">
                                 <span>${name}</span>
                             </li>
                         `;
                     });
-                }).catch(error => {
+                })
+                .catch(error => {
                     console.error("❌ Error fetching students:", error);
                 });
         }
