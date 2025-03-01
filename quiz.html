@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Create Quiz</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -9,19 +10,38 @@
     <link href="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.js"></script>
 </head>
+
 <body>
+
     <div id="app">
         <v-app>
             <v-container>
                 <v-card class="pa-5" elevation="10">
-                    <v-text-field v-model="question" label="Question" outlined dense></v-text-field>
-                    <v-text-field v-model="option1" label="Option 1" outlined dense></v-text-field>
-                    <v-text-field v-model="option2" label="Option 2" outlined dense></v-text-field>
-                    <v-text-field v-model="option3" label="Option 3" outlined dense></v-text-field>
-                    <v-text-field v-model="option4" label="Option 4" outlined dense></v-text-field>
-                    <v-select v-model="correctAnswer" :items="['Option 1', 'Option 2', 'Option 3', 'Option 4']" label="Correct Answer" outlined dense></v-select>
-                    <v-text-field v-model="timeLimit" label="Time Limit (minutes)" outlined dense type="number"></v-text-field>
-                    <v-btn @click="submitQuiz" color="green" block>Submit Quiz</v-btn>
+                    <v-card-title class="header-title">
+                        <i class="fa-solid fa-user-check"></i> เช็คชื่อ
+                    </v-card-title>
+
+                    <!-- สำหรับอาจารย์ (สร้างคำถาม) -->
+                    <div v-if="status === 1">
+                        <v-text-field v-model="question" label="คำถามเช็คชื่อ" outlined dense></v-text-field>
+                        <v-text-field v-model="answer" label="คำตอบที่ถูกต้อง" outlined dense></v-text-field>
+                        <v-text-field v-model="timeLimit" label="กำหนดเวลา (นาที)" outlined dense
+                            type="number"></v-text-field>
+                        <v-btn @click="submitAttendanceQuestion" color="green" block>สร้างคำถาม</v-btn>
+                    </div>
+
+                    <!-- สำหรับนักเรียน (ตอบคำถาม) -->
+                    <div v-else-if="status === 2">
+                        <div v-if="quiz">
+                            <p><strong>คำถาม:</strong> {{ quiz.question }}</p>
+                            <v-text-field v-model="userAnswer" label="พิมพ์คำตอบ" outlined dense></v-text-field>
+                            <v-btn @click="submitAnswer" color="blue" block>ส่งคำตอบ</v-btn>
+                            <p>เวลาที่เหลือ: {{ timeLeft }} วินาที</p>
+                        </div>
+                        <div v-else>
+                            <p>ไม่มีคำถามเช็คชื่อที่เปิดอยู่</p>
+                        </div>
+                    </div>
                 </v-card>
             </v-container>
         </v-app>
@@ -47,82 +67,138 @@
         createApp({
             data() {
                 return {
-                    classroomId: new URLSearchParams(window.location.search).get('classroomId'), // รับ classroomId จาก URL
+                    classroomId: new URLSearchParams(window.location.search).get('classroomId'),
                     question: '',
-                    option1: '',
-                    option2: '',
-                    option3: '',
-                    option4: '',
-                    correctAnswer: '',
+                    answer: '',
                     timeLimit: 0,
-                    status: 0, // ค่า default สำหรับ status
-                    user: null, // ตัวแปรสำหรับเก็บข้อมูลผู้ใช้
+                    status: 0,
+                    user: null,
+                    quiz: null,
+                    userAnswer: '',
+                    timeLeft: 0,
+                    interval: null,
                 };
             },
             methods: {
                 async checkUserLogin() {
-                    // ตรวจสอบสถานะการเข้าสู่ระบบ
                     firebase.auth().onAuthStateChanged(user => {
                         if (user) {
                             this.user = user;
-                            // ถ้ามีการเข้าสู่ระบบแล้ว ให้โหลดข้อมูลควิซ
-                            console.log("ผู้ใช้เข้าสู่ระบบแล้ว:", user);
+                            this.getUserStatus();
                         } else {
                             alert("กรุณาเข้าสู่ระบบก่อน!");
-                            window.location.href = "index.html"; // ถ้ายังไม่ได้เข้าสู่ระบบ ให้เปลี่ยนเส้นทางไปที่หน้า index
+                            window.location.href = "index.html";
                         }
                     });
                 },
-
-                async submitQuiz() {
-                    if (!this.question || !this.option1 || !this.option2 || !this.option3 || !this.option4 || !this.correctAnswer || !this.timeLimit) {
+                async getUserStatus() {
+                    const userRef = db.collection("users").doc(this.user.uid);
+                    const doc = await userRef.get();
+                    if (doc.exists) {
+                        this.status = doc.data().status;
+                        if (this.status === 2) {
+                            this.fetchQuiz();
+                        }
+                    }
+                },
+                async submitAttendanceQuestion() {
+                    if (!this.question || !this.answer || !this.timeLimit) {
                         alert("กรุณากรอกข้อมูลให้ครบถ้วน!");
                         return;
                     }
 
                     const quizData = {
                         question: this.question,
-                        options: {
-                            option1: this.option1,
-                            option2: this.option2,
-                            option3: this.option3,
-                            option4: this.option4,
-                        },
-                        correctAnswer: this.correctAnswer,
-                        timeLimit: this.timeLimit * 60, // แปลงเวลาเป็นวินาที
-                        status: this.status, // เพิ่ม status ที่ส่งไปยัง Firestore
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        correctAnswer: this.answer.trim().toLowerCase(),
+                        timeLimit: this.timeLimit * 60, // แปลงเป็นวินาที
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     };
 
                     try {
                         await db.collection("classrooms")
                             .doc(this.classroomId)
-                            .collection("quiz")
+                            .collection("attendanceQuestions")
                             .add(quizData);
 
-                        alert("✅ Quiz ถูกสร้างเรียบร้อยแล้ว!");
-                        
-                        // เปลี่ยนเส้นทางไปหน้า index.html หลังจากสร้าง quiz สำเร็จ
-                        window.location.href = "index.html"; 
+                        alert("✅ คำถามเช็คชื่อถูกสร้างเรียบร้อย!");
+                        window.location.href = "manage.html?classroomId=" + this.classroomId; // ⬅️ กลับไป manage.html
                     } catch (error) {
-                        console.error("❌ เกิดข้อผิดพลาดในการสร้าง Quiz:", error);
+                        console.error("❌ เกิดข้อผิดพลาด:", error);
                     }
                 },
-                resetForm() {
-                    this.question = '';
-                    this.option1 = '';
-                    this.option2 = '';
-                    this.option3 = '';
-                    this.option4 = '';
-                    this.correctAnswer = '';
-                    this.timeLimit = 0;
-                    this.status = 0; // รีเซ็ตค่า status
+                async fetchQuiz() {
+                    const snapshot = await db.collection("classrooms")
+                        .doc(this.classroomId)
+                        .collection("attendanceQuestions")
+                        .orderBy("createdAt", "desc")
+                        .limit(1)
+                        .get();
+
+                    if (!snapshot.empty) {
+                        this.quiz = snapshot.docs[0].data();
+                        this.startTimer();
+                    }
+                },
+                startTimer() {
+                    const now = firebase.firestore.Timestamp.now().seconds;
+                    const endTime = this.quiz.createdAt.seconds + this.quiz.timeLimit;
+                    this.timeLeft = Math.max(0, endTime - now);
+
+                    this.interval = setInterval(() => {
+                        if (this.timeLeft > 0) {
+                            this.timeLeft--;
+                        } else {
+                            clearInterval(this.interval);
+                            alert("หมดเวลาในการเช็คชื่อ!");
+                        }
+                    }, 1000);
+                },
+                async submitAnswer() {
+                    if (!this.userAnswer) {
+                        alert("กรุณาใส่คำตอบ");
+                        return;
+                    }
+
+                    const isCorrect = this.userAnswer.trim().toLowerCase() === this.quiz.correctAnswer;
+
+                    try {
+                        await db.collection("classrooms")
+                            .doc(this.classroomId)
+                            .collection("attendanceResponses")
+                            .add({
+                                userId: this.user.uid,
+                                answer: this.userAnswer,
+                                isCorrect: isCorrect,
+                                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+
+                        if (isCorrect) {
+                            alert("✅ เช็คชื่อสำเร็จ!");
+                        } else {
+                            alert("❌ คำตอบไม่ถูกต้อง!");
+                        }
+
+                        clearInterval(this.interval);
+
+                        // เช็คว่าสถานะเป็นนักเรียน (status === 2) → กลับไป index.html
+                        if (this.status === 2) {
+                            window.location.href = "index.html";
+                        } else {
+                            window.location.href = "manage.html?classroomId=" + this.classroomId;
+                        }
+                    } catch (error) {
+                        console.error("❌ เกิดข้อผิดพลาดในการส่งคำตอบ:", error);
+                    }
                 }
+
+
             },
             created() {
-                this.checkUserLogin(); // ตรวจสอบการ login เมื่อโหลดหน้าก่อน
-            },
+                this.checkUserLogin();
+            }
         }).use(vuetify).mount("#app");
     </script>
+
 </body>
+
 </html>
