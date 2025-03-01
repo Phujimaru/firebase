@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,8 +20,11 @@
             background-color: #f4f7fb;
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            min-height: 100vh;
+            /* ใช้ min-height แทน height เพื่อให้ยืดหยุ่น */
             margin: 0;
+            overflow-y: auto;
+            /* เพิ่มเพื่อให้สามารถเลื่อนหน้าเว็บได้ */
         }
 
         .header {
@@ -70,6 +74,8 @@
             margin-left: 20px;
             box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
         }
+
+
 
         .classroom-info img {
             width: 100%;
@@ -155,16 +161,36 @@
             margin-right: 15px;
         }
 
+
+
+        .users-container {
+            display: flex;
+            overflow-y: auto;
+            flex-direction: row;
+            /* แสดงทุกองค์ประกอบในแนวระนาบ */
+            gap: 20px;
+        }
+
+        .quiz-container {
+            background-color: #fff;
+            padding: 12px;
+            border-radius: 10px;
+            box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
     </style>
 
 
-    
+
 </head>
+
 <body>
     <div class="header">
         Manage Classroom
-        <button onclick="window.location.href='index.html'" style="float: right; background-color: red; color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer;">กลับหน้าแรก</button>
+        <button onclick="window.location.href='index.html'"
+            style="float: right; background-color: red; color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer;">กลับหน้าแรก</button>
     </div>
+
     <div class="container">
         <div class="sidebar">
             <div class="classroom-info" id="classroom-info">
@@ -172,193 +198,291 @@
             </div>
             <div id="qrcode"></div> <br>
             <p id="classroom-id-display" style="text-align: center; font-weight: bold; color: white;"></p>
-            
         </div>
-        <div class="content">
-            <h2>Manage Users</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Photo</th>
-                        <th>Add to Classroom</th>
-                    </tr>
-                </thead>
-                <tbody v-if="userStatus === 1" id="usersTable"></tbody>
-            </table>
+
+        <div class="main-content">
+            <!-- Quiz Section -->
+            <div class="quiz-container">
+                <h2>Quiz</h2>
+                <button onclick="goToQuizPage()"
+                    style="background-color: green; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer;">
+                    Create Quiz
+                </button>
+            </div>
+
+            <!-- Users Management Section -->
+            <div class="users-container">
+                <div class="content">
+                    <h2 onclick="toggleManageUsers()" style="cursor: pointer; display: flex; align-items: center;">
+                        Manage Users
+                        <span id="toggleIcon" style="margin-left: 10px;">🔽</span>
+                    </h2>
+
+                    <div id="manageUsersContent">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Photo</th>
+                                    <th>Add to Classroom</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+
+
+                <div class="right-sidebar">
+                    <h3>
+                        Users in Classroom
+                    </h3>
+
+                    <ul v-if="isClassUsersDropdownOpen" id="classUsersList" class="user-list"></ul>
+                </div>
+
+            </div>
+
+
+
+
+
+
         </div>
-        <div class="right-sidebar">
-            <h3>Users in Classroom</h3>
-            <ul id="classUsersList" class="user-list"></ul>
-        </div>
-    </div>
-
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCsB5O8vwk_EhCmME6Zg6CqN1gVFl4eJik",
-            authDomain: "projectwebm2025.firebaseapp.com",
-            projectId: "projectwebm2025",
-            storageBucket: "projectwebm2025.appspot.com",
-            messagingSenderId: "316415805582",
-            appId: "1:316415805582:web:582b27fa7d4f8974bee1df",
-            measurementId: "G-EC8J8RGC0T"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-
-        const params = new URLSearchParams(window.location.search);
-        const classroomId = params.get("classroomId");
-
-        if (!classroomId) {
-            alert("❌ ไม่พบ classroomId ใน URL");
-            window.location.href = "index.html";
-        }
-
-        firebase.auth().onAuthStateChanged(user => {
-            if (user) {
-                db.collection("classrooms").doc(classroomId).get().then(doc => {
-                    if (doc.exists) {
-                        const data = doc.data();
-                        document.getElementById("classroom-info").innerHTML = `
-                            <h2>${data.name}</h2>
-                            <p>อาจารย์: ${data.teacher}</p>
-                            <p>รหัสวิชา: ${data.subjectCode}</p>
-                            <img src="${data.image}" alt="Classroom Image">
-                        `;
-                        generateQRCode();
-                        loadUsers();
-                        loadClassroomUsers();
-                    } else {
-                        document.getElementById("classroom-info").innerHTML = "<p>ไม่พบข้อมูลห้องเรียน</p>";
-                    }
-                });
-            } else {
-                alert("กรุณาเข้าสู่ระบบก่อน!");
-                window.location.href = "index.html";
-            }
-        });
-
-        function generateQRCode() {
-    const classroomIdText = `Classroom ID: ${classroomId}`; // ข้อความเป็นรหัสคลาสรูม
-
-    // สร้าง QR Code โดยใช้ข้อความของรหัสคลาสรูม
-    new QRCode(document.getElementById("qrcode"), {
-        text: classroomIdText,
-        width: 200,
-        height: 200
-    });
-
-    // แสดง Classroom ID ใต้ QR Code
-    document.getElementById("classroom-id-display").innerText = classroomIdText;
-}
 
 
-
-        function loadUsers() {
-            const usersTable = document.getElementById("usersTable");
-            usersTable.innerHTML = "";
-
-            db.collection("users").get().then(snapshot => {
-                snapshot.forEach(userDoc => {
-                    const userData = userDoc.data();
-                    if (userData.status !== 2) return; // แสดงเฉพาะผู้ใช้ที่มี status = 2
-
-                    // ตรวจสอบว่าอยู่ใน classroom แล้วหรือยัง
-                    db.collection("classrooms").doc(classroomId).collection("students").doc(userDoc.id).get().then(classUserDoc => {
-                        const row = document.createElement("tr");
-                        row.innerHTML = `
-                            <td>${userData.name}</td>
-                            <td>${userData.email}</td>
-                            <td><img src="${userData.photo}" width="50"></td>
-                            <td>${classUserDoc.exists ? "✅ Already in class" : `<button onclick="addUserToClass('${userDoc.id}')">Add</button>`}</td>
-                        `;
-                        usersTable.appendChild(row);
-                    });
-                });
-            });
-        }
-
-        function addUserToClass(userId) {
-    db.collection("users").doc(userId).get().then(userDoc => {
-        if (userDoc.exists) {
-            const userData = userDoc.data();
-            const studentData = {
-                userId: userId,
-                name: userData.name || "No Name",
-                email: userData.email || "No Email",
-                photo: userData.photo || "default-profile.png",
-                status: 2
+        <script>
+            const firebaseConfig = {
+                apiKey: "AIzaSyCsB5O8vwk_EhCmME6Zg6CqN1gVFl4eJik",
+                authDomain: "projectwebm2025.firebaseapp.com",
+                projectId: "projectwebm2025",
+                storageBucket: "projectwebm2025.appspot.com",
+                messagingSenderId: "316415805582",
+                appId: "1:316415805582:web:582b27fa7d4f8974bee1df",
+                measurementId: "G-EC8J8RGC0T"
             };
 
-            // เพิ่มใน classrooms/{classroomId}/students/{userId}
-            db.collection("classrooms").doc(classroomId)
-                .collection("students").doc(userId)
-                .set(studentData)
-                .then(() => {
-                    console.log("✅ เพิ่มนักเรียนในคลาสสำเร็จ");
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
 
-                    // ✅ เพิ่ม classroom เข้าไปใน users/{userId}/classrooms/{classroomId}
-                    db.collection("users").doc(userId)
-                        .collection("classrooms").doc(classroomId)
-                        .set({
-                            classroomId: classroomId,
-                            name: userData.name || "No Name",
-                            teacher: userData.teacher || "Unknown Teacher",
-                            subjectCode: userData.subjectCode || "No Code",
-                            image: userData.image || "",  
-                            joinedAt: firebase.firestore.FieldValue.serverTimestamp() // เวลาที่เข้าร่วม
-                        })
-                        .then(() => {
-                            console.log("✅ เพิ่มคลาสลงในข้อมูลนักเรียนสำเร็จ");
+            const params = new URLSearchParams(window.location.search);
+            const classroomId = params.get("classroomId");
+
+            if (!classroomId) {
+                alert("❌ ไม่พบ classroomId ใน URL");
+                window.location.href = "index.html";
+            }
+
+            firebase.auth().onAuthStateChanged(user => {
+                if (user) {
+                    db.collection("classrooms").doc(classroomId).get().then(doc => {
+                        if (doc.exists) {
+                            const data = doc.data();
+                            document.getElementById("classroom-info").innerHTML = `
+                                    <h2>${data.name}</h2>
+                                    <p>อาจารย์: ${data.teacher}</p>
+                                    <p>รหัสวิชา: ${data.subjectCode}</p>
+                                    <img src="${data.image}" alt="Classroom Image">
+                                `;
+                            generateQRCode();
+                            loadUsers();
                             loadClassroomUsers();
-                            loadUsers(); // รีโหลด user list เพื่ออัปเดตปุ่ม Add
-                        })
-                        .catch(error => {
-                            console.error("❌ เพิ่มข้อมูลคลาสใน users ไม่สำเร็จ:", error);
-                        });
-
-                })
-                .catch(error => {
-                    console.error("❌ เพิ่มผู้ใช้ใน classrooms ไม่สำเร็จ:", error);
-                });
-        } else {
-            console.error("❌ ไม่พบข้อมูลผู้ใช้!");
-        }
-    }).catch(error => {
-        console.error("❌ ดึงข้อมูลผู้ใช้ล้มเหลว:", error);
-    });
-}
-
-
-        function loadClassroomUsers() {
-            const userList = document.getElementById("classUsersList");
-            userList.innerHTML = "";
-
-            db.collection("classrooms").doc(classroomId)
-                .collection("students").where("status", "==", 2)
-                .get()
-                .then(snapshot => {
-                    userList.innerHTML = "";
-                    snapshot.forEach(doc => {
-                        let data = doc.data();
-                        let name = data.name || "No Name";
-                        let photo = data.photo || "default-profile.png";
-
-                        userList.innerHTML += `
-                            <li style="display: flex; align-items: center; margin-bottom: 10px;">
-                                <img src="${photo}" alt="Profile" 
-                                     style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px;">
-                                <span>${name}</span>
-                            </li>
-                        `;
+                        } else {
+                            document.getElementById("classroom-info").innerHTML = "<p>ไม่พบข้อมูลห้องเรียน</p>";
+                        }
                     });
-                })
-                .catch(error => {
-                    console.error("❌ Error fetching students:", error);
+                } else {
+                    alert("กรุณาเข้าสู่ระบบก่อน!");
+                    window.location.href = "index.html";
+                }
+            });
+
+
+            function goToQuizPage() {
+                window.location.href = `quiz.html?classroomId=${classroomId}`;
+            }
+
+
+            function generateQRCode() {
+                const classroomIdText = `Classroom ID: ${classroomId}`; // ข้อความเป็นรหัสคลาสรูม
+
+                // สร้าง QR Code โดยใช้ข้อความของรหัสคลาสรูม
+                new QRCode(document.getElementById("qrcode"), {
+                    text: classroomIdText,
+                    width: 200,
+                    height: 200
                 });
-        }
-    </script>
+
+                // แสดง Classroom ID ใต้ QR Code
+                document.getElementById("classroom-id-display").innerText = classroomIdText;
+            }
+
+
+
+            function loadUsers() {
+                const usersTable = document.getElementById("usersTable");
+                usersTable.innerHTML = "";
+
+                db.collection("users").get().then(snapshot => {
+                    snapshot.forEach(userDoc => {
+                        const userData = userDoc.data();
+                        if (userData.status !== 2) return; // แสดงเฉพาะผู้ใช้ที่มี status = 2
+
+                        // ตรวจสอบว่าอยู่ใน classroom แล้วหรือยัง
+                        db.collection("classrooms").doc(classroomId).collection("students").doc(userDoc.id).get().then(classUserDoc => {
+                            const row = document.createElement("tr");
+                            row.innerHTML = `
+                                    <td>${userData.name}</td>
+                                    <td>${userData.email}</td>
+                                    <td><img src="${userData.photo}" width="50"></td>
+                                    <td>${classUserDoc.exists ? "✅ Already in class" : `<button onclick="addUserToClass('${userDoc.id}')">Add</button>`}</td>
+                                `;
+                            usersTable.appendChild(row);
+                        });
+                    });
+                });
+            }
+
+            function addUserToClass(userId) {
+                db.collection("users").doc(userId).get().then(userDoc => {
+                    if (userDoc.exists) {
+                        const userData = userDoc.data();
+                        const studentData = {
+                            userId: userId,
+                            name: userData.name || "No Name",
+                            email: userData.email || "No Email",
+                            photo: userData.photo || "default-profile.png",
+                            status: 2
+                        };
+
+                        // เพิ่มใน classrooms/{classroomId}/students/{userId}
+                        db.collection("classrooms").doc(classroomId)
+                            .collection("students").doc(userId)
+                            .set(studentData)
+                            .then(() => {
+                                console.log("✅ เพิ่มนักเรียนในคลาสสำเร็จ");
+
+                                // ✅ เพิ่ม classroom เข้าไปใน users/{userId}/classrooms/{classroomId}
+                                db.collection("users").doc(userId)
+                                    .collection("classrooms").doc(classroomId)
+                                    .set({
+                                        classroomId: classroomId,
+                                        name: userData.name || "No Name",
+                                        teacher: userData.teacher || "Unknown Teacher",
+                                        subjectCode: userData.subjectCode || "No Code",
+                                        image: userData.image || "",
+                                        joinedAt: firebase.firestore.FieldValue.serverTimestamp() // เวลาที่เข้าร่วม
+                                    })
+                                    .then(() => {
+                                        console.log("✅ เพิ่มคลาสลงในข้อมูลนักเรียนสำเร็จ");
+                                        loadClassroomUsers();
+                                        loadUsers(); // รีโหลด user list เพื่ออัปเดตปุ่ม Add
+                                    })
+                                    .catch(error => {
+                                        console.error("❌ เพิ่มข้อมูลคลาสใน users ไม่สำเร็จ:", error);
+                                    });
+
+                            })
+                            .catch(error => {
+                                console.error("❌ เพิ่มผู้ใช้ใน classrooms ไม่สำเร็จ:", error);
+                            });
+                    } else {
+                        console.error("❌ ไม่พบข้อมูลผู้ใช้!");
+                    }
+                }).catch(error => {
+                    console.error("❌ ดึงข้อมูลผู้ใช้ล้มเหลว:", error);
+                });
+            }
+
+
+            function loadClassroomUsers() {
+                const userList = document.getElementById("classUsersList");
+                userList.innerHTML = "";
+
+                db.collection("classrooms").doc(classroomId)
+                    .collection("students").where("status", "==", 2)
+                    .get()
+                    .then(snapshot => {
+                        userList.innerHTML = "";
+                        snapshot.forEach(doc => {
+                            let data = doc.data();
+                            let name = data.name || "No Name";
+                            let photo = data.photo || "default-profile.png";
+
+                            userList.innerHTML += `
+                                    <li style="display: flex; align-items: center; margin-bottom: 10px;">
+                                        <img src="${photo}" alt="Profile" 
+                                             style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px;">
+                                        <span>${name}</span>
+                                        <button onclick="removeUserFromClass('${doc.id}')" style="margin-left: 10px; background-color: red; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">ลบ</button>
+                                    </li>
+                                `;
+                        });
+                    })
+                    .catch(error => {
+                        console.error("❌ Error fetching students:", error);
+                    });
+            }
+            function removeUserFromClass(userId) {
+                // ขั้นแรก ลบผู้ใช้จาก collection students ในห้องเรียน
+                db.collection("classrooms").doc(classroomId)
+                    .collection("students").doc(userId)
+                    .delete()
+                    .then(() => {
+                        console.log("✅ ลบผู้ใช้จากห้องเรียนสำเร็จ");
+
+                        // จากนั้นลบข้อมูลห้องเรียนจากรายชื่อห้องเรียนของผู้ใช้
+                        db.collection("users").doc(userId)
+                            .collection("classrooms").doc(classroomId)
+                            .delete()
+                            .then(() => {
+                                console.log("✅ ลบห้องเรียนจากรายชื่อของผู้ใช้สำเร็จ");
+
+                                // รีเฟรชทั้งรายชื่อผู้ใช้ในห้องเรียนและรายชื่อผู้ใช้ทั้งหมด
+                                loadClassroomUsers();
+                                loadUsers();  // รีโหลดรายชื่อผู้ใช้เพื่ออัปเดตปุ่ม "Add"
+                            })
+                            .catch(error => {
+                                console.error("❌ ลบห้องเรียนจากรายชื่อผู้ใช้ล้มเหลว:", error);
+                            });
+
+                    })
+                    .catch(error => {
+                        console.error("❌ ลบผู้ใช้จากห้องเรียนล้มเหลว:", error);
+                    });
+            }
+
+
+
+
+            document.addEventListener("DOMContentLoaded", function () {
+                const content = document.getElementById("manageUsersContent");
+                const icon = document.getElementById("toggleIcon");
+
+                content.style.display = "none"; // ซ่อน dropdown เริ่มต้น
+                icon.innerText = "▶️"; // กำหนดให้ลูกศรเป็นขวา (ปิด)
+            });
+
+            function toggleManageUsers() {
+                const content = document.getElementById("manageUsersContent");
+                const icon = document.getElementById("toggleIcon");
+
+                if (content.style.display === "none" || content.style.display === "") {
+                    content.style.display = "block";  // แสดงเนื้อหา
+                    icon.innerText = "🔽"; // เปลี่ยนไอคอนเป็นลูกศรลง
+                } else {
+                    content.style.display = "none";  // ซ่อนเนื้อหา
+                    icon.innerText = "▶️"; // เปลี่ยนไอคอนเป็นลูกศรขวา
+                }
+            }
+
+
+
+
+
+        </script>
 </body>
+
 </html>
