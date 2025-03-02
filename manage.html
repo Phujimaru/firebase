@@ -14,6 +14,10 @@
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
+    <!--QR code -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -208,6 +212,25 @@
                     style="background-color: green; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer;">
                     Create Quiz
                 </button>
+
+
+
+                <!-- 🔹 ตารางแสดงคำถามและคำตอบ -->
+                <table id="quizTable" border="1" style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th>คำถาม</th>
+                            <th>เวลาจำกัด</th>
+                            <th>คำตอบที่ถูกต้อง</th>
+                            <th>คำตอบจากนักเรียน</th>
+                        </tr>
+                    </thead>
+                    <tbody id="quizTableBody">
+                        <!-- 🔹 รายการคำถามและคำตอบจะถูกโหลดที่นี่ -->
+                    </tbody>
+                </table>
+
+
             </div>
 
             <!-- Users Management Section -->
@@ -244,11 +267,6 @@
                 </div>
 
             </div>
-
-
-
-
-
 
         </div>
 
@@ -318,6 +336,10 @@
                 // แสดง Classroom ID ใต้ QR Code
                 document.getElementById("classroom-id-display").innerText = classroomIdText;
             }
+
+
+
+
 
 
 
@@ -455,8 +477,6 @@
             }
 
 
-
-
             document.addEventListener("DOMContentLoaded", function () {
                 const content = document.getElementById("manageUsersContent");
                 const icon = document.getElementById("toggleIcon");
@@ -479,6 +499,253 @@
             }
 
 
+            function formatDateTime(date) {
+                return date.toLocaleString("th-TH", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                    hourCycle: "h23",
+                    timeZone: "Asia/Bangkok"
+                }).replace(",", ""); // ลบเครื่องหมาย "," ที่คั่นระหว่างวันที่และเวลา
+            }
+
+            function loadAttendanceQuestions() {
+                const tableBody = document.getElementById("quizTableBody");
+                tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>🔄 กำลังโหลด...</td></tr>";
+
+                db.collection("classrooms").doc(classroomId).collection("attendanceQuestions").get()
+                    .then(snapshot => {
+                        tableBody.innerHTML = ""; // ล้างข้อมูลเก่า
+
+                        if (snapshot.empty) {
+                            tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>❌ ยังไม่มีคำถาม</td></tr>";
+                            return;
+                        }
+
+                        snapshot.forEach(doc => {
+                            const questionData = doc.data();
+                            const questionId = doc.id;
+                            const createdAt = questionData.createdAt?.toDate() || null;
+                            const timeLimit = questionData.timeLimit || 0;
+
+                            let createdAtText = createdAt ? formatDateTime(createdAt) : "N/A";
+                            let endTimeText = createdAt ? formatDateTime(new Date(createdAt.getTime() + timeLimit * 1000)) : "N/A";
+
+                            const row = document.createElement("tr");
+                            row.innerHTML = `
+                    <td>${questionData.question}</td>
+                    <td>
+                        <strong>เริ่ม:</strong> ${createdAtText} <br>
+                        <strong>สิ้นสุด:</strong> ${endTimeText}
+                    </td>
+                    <td>${questionData.correctAnswer}</td>
+                    <td>
+                        <details>
+                            <summary style="cursor: pointer; color: blue;">ดูคำตอบ</summary>
+                            <div id="responses-${questionId}" style="padding: 10px;">🔄 กำลังโหลด...</div>
+                        </details>
+                    </td>
+                `;
+
+                            tableBody.appendChild(row);
+                            loadAttendanceResponses(questionId); // โหลดคำตอบของคำถามนี้
+                        });
+                    })
+                    .catch(error => {
+                        console.error("❌ โหลดคำถามล้มเหลว:", error);
+                    });
+            }
+
+
+
+            function loadAttendanceResponses(questionId) {
+                const responseCell = document.getElementById(`responses-${questionId}`);
+                responseCell.innerHTML = "🔄 กำลังโหลด...";
+
+                db.collection("classrooms").doc(classroomId)
+                    .collection("attendanceQuestions").doc(questionId)
+                    .collection("attendanceResponses")
+                    .orderBy("timestamp", "desc")
+                    .get()
+                    .then(snapshot => {
+                        if (snapshot.empty) {
+                            responseCell.innerHTML = "❌ ไม่มีคำตอบ";
+                            return;
+                        }
+
+                        let responseHTML = "<ul style='padding-left: 10px;'>";
+                        let promises = [];
+
+                        snapshot.forEach(doc => {
+                            const responseData = doc.data();
+                            const userId = responseData.userId;
+                            const status = responseData.status; // ใช้ status ของ attendanceResponses
+                            const timestamp = responseData.timestamp?.toDate().toLocaleString("th-TH") || "N/A";
+
+                            // แปลงสถานะเป็นข้อความ
+                            const statusText = status === 1 ? "✅ มาเรียน" : "❌ ไม่มาเรียน";
+
+                            // ดึงชื่อผู้ใช้
+                            const userPromise = db.collection("users").doc(userId).get().then(userDoc => {
+                                const userData = userDoc.exists ? userDoc.data() : { name: "Unknown User" };
+                                responseHTML += `<li><strong>${userData.name}</strong> - ${timestamp} - <span style="color: ${status === 1 ? 'green' : 'red'};">${statusText}</span></li>`;
+                            });
+
+                            promises.push(userPromise);
+                        });
+
+                        // รอให้โหลดชื่อผู้ใช้เสร็จทุกคนก่อน แล้วค่อยอัปเดต HTML
+                        Promise.all(promises).then(() => {
+                            responseHTML += "</ul>";
+                            responseCell.innerHTML = responseHTML;
+                        });
+                    })
+                    .catch(error => {
+                        responseCell.innerHTML = "❌ โหลดคำตอบล้มเหลว";
+                        console.error("❌ โหลดคำตอบล้มเหลว:", error);
+                    });
+
+
+                if (endTime) {
+                    markAbsentStudents(questionId, endTime);
+                }
+            }
+
+            // ✅ โหลดคำถามเมื่อหน้าเว็บโหลดเสร็จ
+            document.addEventListener("DOMContentLoaded", function () {
+                loadAttendanceQuestions();
+            });
+
+
+
+
+
+
+            function checkAndMarkAbsentStudents() {
+                db.collection("classrooms").doc(classroomId).collection("attendanceQuestions").get()
+                    .then(snapshot => {
+                        snapshot.forEach(questionDoc => {
+                            const questionData = questionDoc.data();
+                            const questionId = questionDoc.id;
+                            const createdAt = questionData.createdAt?.toDate();
+                            const timeLimit = questionData.timeLimit || 0;
+                            const endTime = createdAt ? new Date(createdAt.getTime() + timeLimit * 1000) : null;
+
+                            if (endTime && new Date() > endTime) {
+                                // หมดเวลาสำหรับคำถามนี้แล้ว -> หานักเรียนที่ไม่ได้ตอบ
+                                db.collection("classrooms").doc(classroomId).collection("students").get()
+                                    .then(studentSnapshot => {
+                                        studentSnapshot.forEach(studentDoc => {
+                                            const studentId = studentDoc.id;
+
+                                            // ตรวจสอบว่านักเรียนตอบคำถามไปแล้วหรือยัง
+                                            db.collection("classrooms").doc(classroomId)
+                                                .collection("attendanceQuestions").doc(questionId)
+                                                .collection("attendanceResponses").doc(studentId)
+                                                .get()
+                                                .then(responseDoc => {
+                                                    if (!responseDoc.exists) {
+                                                        // นักเรียนยังไม่ตอบ -> เพิ่มสถานะไม่มาเรียน (0)
+                                                        db.collection("classrooms").doc(classroomId)
+                                                            .collection("attendanceQuestions").doc(questionId)
+                                                            .collection("attendanceResponses").doc(studentId)
+                                                            .set({
+                                                                userId: studentId,
+                                                                status: 0, // ไม่มาเรียน
+                                                                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                                                            })
+                                                            .then(() => {
+                                                                console.log(`✅ Marked ${studentId} as absent for question ${questionId}`);
+                                                            })
+                                                            .catch(error => {
+                                                                console.error("❌ Error marking absent:", error);
+                                                            });
+                                                    }
+                                                })
+                                                .catch(error => {
+                                                    console.error("❌ Error checking response:", error);
+                                                });
+                                        });
+                                    })
+                                    .catch(error => {
+                                        console.error("❌ Error fetching students:", error);
+                                    });
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        console.error("❌ Error fetching attendance questions:", error);
+                    });
+            }
+
+            // ✅ เรียกใช้งานฟังก์ชันนี้ทุกๆ 1 นาทีเพื่อตรวจสอบนักเรียนที่ไม่ตอบคำถาม
+            setInterval(checkAndMarkAbsentStudents, 60000);
+
+
+            function markAbsentStudents(questionId, endTime) {
+                const currentTime = new Date();
+                if (currentTime < endTime) {
+                    console.log("⏳ ยังไม่หมดเวลา ไม่สามารถเช็คขาดได้");
+                    return; // ยังไม่หมดเวลา ไม่ต้องทำอะไร
+                }
+
+                // ดึงรายชื่อนักเรียนทั้งหมดจาก classroom
+                db.collection("classrooms").doc(classroomId)
+                    .collection("students").get()
+                    .then(studentSnapshot => {
+                        const allStudents = studentSnapshot.docs.map(doc => doc.id); // รายชื่อ userId นักเรียนทั้งหมด
+
+                        // ดึงรายชื่อ userId ที่มีอยู่แล้วใน attendanceResponses
+                        db.collection("classrooms").doc(classroomId)
+                            .collection("attendanceQuestions").doc(questionId)
+                            .collection("attendanceResponses").get()
+                            .then(responseSnapshot => {
+                                const respondedStudents = responseSnapshot.docs.map(doc => doc.id); // รายชื่อ userId ที่ตอบแล้ว
+
+                                // หาคนที่ยังไม่มีอยู่ใน attendanceResponses
+                                const absentStudents = allStudents.filter(userId => !respondedStudents.includes(userId));
+
+                                if (absentStudents.length === 0) {
+                                    console.log("✅ ไม่มีนักเรียนที่ขาดเรียนเพิ่มเติม");
+                                    return;
+                                }
+
+                                console.log("❌ นักเรียนที่ยังไม่มีใน attendanceResponses:", absentStudents);
+
+                                // เพิ่มนักเรียนที่ขาดเรียนลงใน attendanceResponses
+                                const batch = db.batch();
+                                absentStudents.forEach(userId => {
+                                    const absentRef = db.collection("classrooms").doc(classroomId)
+                                        .collection("attendanceQuestions").doc(questionId)
+                                        .collection("attendanceResponses").doc(userId);
+
+                                    batch.set(absentRef, {
+                                        userId: userId,
+                                        status: 0, // ❌ ไม่มาเรียน
+                                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                                    });
+                                });
+
+                                batch.commit()
+                                    .then(() => {
+                                        console.log(`✅ บันทึกนักเรียนขาดเรียนสำเร็จ ${absentStudents.length} คน`);
+                                    })
+                                    .catch(error => {
+                                        console.error("❌ ไม่สามารถเพิ่มนักเรียนขาดเรียนได้:", error);
+                                    });
+
+                            })
+                            .catch(error => {
+                                console.error("❌ โหลด attendanceResponses ล้มเหลว:", error);
+                            });
+                    })
+                    .catch(error => {
+                        console.error("❌ โหลดรายชื่อนักเรียนล้มเหลว:", error);
+                    });
+            }
 
 
 
