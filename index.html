@@ -297,6 +297,10 @@
                 };
             },
             methods: {
+
+                 goToQuizPage(classroomId) {
+            window.location.href = `quiz.html?classroomId=${classroomId}`;
+        },
                 async joinClassroom() {
                     if (!this.classroomId) {
                         alert("กรุณากรอกรหัส Classroom!");
