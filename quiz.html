@@ -175,7 +175,9 @@
 
                 ,
 
-             
+
+
+
                 async startTimer() {
                     const now = firebase.firestore.Timestamp.now().seconds;
                     const endTime = this.quiz.createdAt.seconds + this.quiz.timeLimit;
@@ -222,17 +224,28 @@
                                             timestamp: firebase.firestore.FieldValue.serverTimestamp()
                                         });
 
+
+                                        // 🔹 อัปเดตคะแนนเป็น 0 สำหรับคนที่ไม่ส่งคำตอบ
+                                        await db.collection("classrooms")
+                                            .doc(this.classroomId)
+                                            .collection("students")
+                                            .doc(studentId)
+                                            .set({ scores: 0 }, { merge: true });
+
                                         // 🔹 เพิ่ม `userId` ลงใน `answeredUserIds` เพื่อกันการซ้ำ
                                         answeredUserIds.add(studentId);
                                     }
+
+
+
+
                                 }
                             });
                         }
                     }, 1000);
-                }
+                },
 
 
-                ,
                 async submitAnswer() {
                     if (!this.userAnswer) {
                         alert("กรุณากรอกคำตอบก่อนส่ง!");
@@ -248,6 +261,11 @@
                         .collection("attendanceQuestions").doc(this.quiz.questionId)
                         .collection("attendanceResponses");
 
+                    const studentRef = db.collection("classrooms")
+                        .doc(this.classroomId)
+                        .collection("students")
+                        .doc(this.user.uid);
+
                     try {
                         // 🔹 ตรวจสอบว่าผู้ใช้เคยตอบไปแล้วหรือไม่
                         const existingResponse = await responseRef
@@ -259,16 +277,12 @@
                             return;
                         }
 
-                        // 🔹 ดึงรายชื่อนักเรียนใน classroom/students
-                        const studentSnapshot = await db.collection("classrooms")
-                            .doc(this.classroomId)
-                            .collection("students")
-                            .doc(this.user.uid)
-                            .get();
+                        // 🔹 ดึงข้อมูลของนักเรียนจาก `students`
+                        const studentDoc = await studentRef.get();
+                        let currentScore = 0;
 
-                        if (!studentSnapshot.exists) {
-                            alert("❌ คุณไม่ได้อยู่ในห้องเรียนนี้!");
-                            return;
+                        if (studentDoc.exists) {
+                            currentScore = studentDoc.data().scores || 0; // ถ้ามีคะแนนอยู่แล้วให้ใช้ ถ้าไม่มีให้ใช้ 0
                         }
 
                         // 🔹 ตรวจสอบคำตอบ
@@ -280,17 +294,22 @@
                             answer: this.userAnswer,
                             isCorrect: isCorrect,
                             status: 1, // นักเรียนตอบทันเวลา = มาเรียน
+                            scores: 1, // คะแนนของควิซนี้ (บันทึกใน attendanceResponses)
                             timestamp: firebase.firestore.FieldValue.serverTimestamp()
                         });
 
-                        alert("✅ ส่งคำตอบเรียบร้อย!");
+                        // 🔹 อัปเดตคะแนนใน `students`
+                        await studentRef.update({
+                            scores: currentScore + 1 // เพิ่มคะแนนใน students ทีละ 1
+                        });
+
+                        alert(`✅ ส่งคำตอบเรียบร้อย! คะแนนปัจจุบันของคุณ: ${currentScore + 1}`);
                         window.location.href = "index.html";
 
                     } catch (error) {
                         console.error("❌ บันทึกคำตอบล้มเหลว:", error);
                     }
                 }
-
 
 
 
