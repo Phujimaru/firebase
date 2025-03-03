@@ -158,6 +158,7 @@
             box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
         }
 
+
         .user-list img {
             width: 50px;
             height: 50px;
@@ -430,16 +431,24 @@
                         userList.innerHTML = "";
                         snapshot.forEach(doc => {
                             let data = doc.data();
-                            let name = data.name || "No Name";
+                            let name = data.name || "ไม่มีชื่อ";
                             let photo = data.photo || "default-profile.png";
+                            let scores = data.scores || "ไม่มีคะแนน";
 
                             userList.innerHTML += `
-                                    <li style="display: flex; align-items: center; margin-bottom: 10px;">
-                                        <img src="${photo}" alt="Profile" 
-                                             style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px;">
-                                        <span>${name}</span>
-                                        <button onclick="removeUserFromClass('${doc.id}')" style="margin-left: 10px; background-color: red; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">ลบ</button>
-                                    </li>
+                                  <li style="display: flex; align-items: center; margin-bottom: 10px; flex-direction: column; align-items: flex-start;">
+    <div style="display: flex; align-items: center; width: 100%;">
+        <img src="${photo}" alt="Profile" 
+             style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px;">
+        <span>${name}</span>
+        <button onclick="removeUserFromClass('${doc.id}')" 
+                style="margin-left: auto; background-color: red; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">
+            ลบ
+        </button>
+    </div>
+    <span style="margin-top: 5px;">คะแนนเข้าเรียน: ${scores}</span>
+</li>
+                                
                                 `;
                         });
                     })
@@ -512,31 +521,32 @@
                 }).replace(",", ""); // ลบเครื่องหมาย "," ที่คั่นระหว่างวันที่และเวลา
             }
 
-         
-    function loadAttendanceQuestions() {
-    const tableBody = document.getElementById("quizTableBody");
-    tableBody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>🔄 กำลังโหลด...</td></tr>";
+            function loadAttendanceQuestions() {
+                const tableBody = document.getElementById("quizTableBody");
+                tableBody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>🔄 กำลังโหลด...</td></tr>";
 
-    db.collection("classrooms").doc(classroomId).collection("attendanceQuestions").get()
-        .then(snapshot => {
-            tableBody.innerHTML = ""; // ล้างข้อมูลเก่า
+                // โหลดข้อมูลแบบ Realtime
+                db.collection("classrooms").doc(classroomId).collection("attendanceQuestions")
+                    .orderBy("createdAt", "desc") // เรียงจากใหม่ไปเก่า
+                    .onSnapshot(snapshot => {
+                        tableBody.innerHTML = ""; // ล้างข้อมูลเก่า
 
-            if (snapshot.empty) {
-                tableBody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>❌ ยังไม่มีคำถาม</td></tr>";
-                return;
-            }
+                        if (snapshot.empty) {
+                            tableBody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>❌ ยังไม่มีคำถาม</td></tr>";
+                            return;
+                        }
 
-            snapshot.forEach(doc => {
-                const questionData = doc.data();
-                const attendanceQuestionsId = doc.id;
-                const createdAt = questionData.createdAt?.toDate() || null;
-                const timeLimit = questionData.timeLimit || 0;
+                        snapshot.forEach(doc => {
+                            const questionData = doc.data();
+                            const attendanceQuestionsId = doc.id;
+                            const createdAt = questionData.createdAt?.toDate() || null;
+                            const timeLimit = questionData.timeLimit || 0;
 
-                let createdAtText = createdAt ? formatDateTime(createdAt) : "N/A";
-                let endTimeText = createdAt ? formatDateTime(new Date(createdAt.getTime() + timeLimit * 1000)) : "N/A";
+                            let createdAtText = createdAt ? formatDateTime(createdAt) : "N/A";
+                            let endTimeText = createdAt ? formatDateTime(new Date(createdAt.getTime() + timeLimit * 1000)) : "N/A";
 
-                const row = document.createElement("tr");
-                row.innerHTML = `
+                            const row = document.createElement("tr");
+                            row.innerHTML = `
                     <td>${questionData.question}</td>
                     <td>
                         <strong>เริ่ม:</strong> ${createdAtText} <br>
@@ -557,21 +567,22 @@
                         </button>
                     </td>
                 `;
-                tableBody.appendChild(row);
+                            tableBody.appendChild(row);
 
-                // โหลดคำตอบของคำถามนี้
-                loadAttendanceResponses(attendanceQuestionsId);
-            });
-        })
-        .catch(error => {
-            console.error("❌ โหลดคำถามล้มเหลว:", error);
-        });
-}
+                            // โหลดคำตอบของคำถามนี้
+                            loadAttendanceResponses(attendanceQuestionsId);
+                        });
+                    }, error => {
+                        console.error("❌ โหลดคำถามล้มเหลว:", error);
+                    });
+            }
 
-// ฟังก์ชันสำหรับเปิดหน้า showQR.html
-function navigateToQR(classroomId, attendanceQuestionsId) {
-    window.location.href = `showQR.html?classroomId=${classroomId}&attendanceQuestionsId=${attendanceQuestionsId}`;
-}
+
+
+            // ฟังก์ชันสำหรับเปิดหน้า showQR.html
+            function navigateToQR(classroomId, attendanceQuestionsId) {
+                window.location.href = `showQR.html?classroomId=${classroomId}&attendanceQuestionsId=${attendanceQuestionsId}`;
+            }
 
             function loadAttendanceResponses(questionId) {
                 const responseCell = document.getElementById(`responses-${questionId}`);
@@ -630,9 +641,6 @@ function navigateToQR(classroomId, attendanceQuestionsId) {
             document.addEventListener("DOMContentLoaded", function () {
                 loadAttendanceQuestions();
             });
-
-
-
 
 
 
