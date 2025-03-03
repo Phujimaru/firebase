@@ -512,30 +512,31 @@
                 }).replace(",", ""); // ลบเครื่องหมาย "," ที่คั่นระหว่างวันที่และเวลา
             }
 
-            function loadAttendanceQuestions() {
-                const tableBody = document.getElementById("quizTableBody");
-                tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>🔄 กำลังโหลด...</td></tr>";
+         
+    function loadAttendanceQuestions() {
+    const tableBody = document.getElementById("quizTableBody");
+    tableBody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>🔄 กำลังโหลด...</td></tr>";
 
-                db.collection("classrooms").doc(classroomId).collection("attendanceQuestions").get()
-                    .then(snapshot => {
-                        tableBody.innerHTML = ""; // ล้างข้อมูลเก่า
+    db.collection("classrooms").doc(classroomId).collection("attendanceQuestions").get()
+        .then(snapshot => {
+            tableBody.innerHTML = ""; // ล้างข้อมูลเก่า
 
-                        if (snapshot.empty) {
-                            tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>❌ ยังไม่มีคำถาม</td></tr>";
-                            return;
-                        }
+            if (snapshot.empty) {
+                tableBody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>❌ ยังไม่มีคำถาม</td></tr>";
+                return;
+            }
 
-                        snapshot.forEach(doc => {
-                            const questionData = doc.data();
-                            const questionId = doc.id;
-                            const createdAt = questionData.createdAt?.toDate() || null;
-                            const timeLimit = questionData.timeLimit || 0;
+            snapshot.forEach(doc => {
+                const questionData = doc.data();
+                const attendanceQuestionsId = doc.id;
+                const createdAt = questionData.createdAt?.toDate() || null;
+                const timeLimit = questionData.timeLimit || 0;
 
-                            let createdAtText = createdAt ? formatDateTime(createdAt) : "N/A";
-                            let endTimeText = createdAt ? formatDateTime(new Date(createdAt.getTime() + timeLimit * 1000)) : "N/A";
+                let createdAtText = createdAt ? formatDateTime(createdAt) : "N/A";
+                let endTimeText = createdAt ? formatDateTime(new Date(createdAt.getTime() + timeLimit * 1000)) : "N/A";
 
-                            const row = document.createElement("tr");
-                            row.innerHTML = `
+                const row = document.createElement("tr");
+                row.innerHTML = `
                     <td>${questionData.question}</td>
                     <td>
                         <strong>เริ่ม:</strong> ${createdAtText} <br>
@@ -545,21 +546,32 @@
                     <td>
                         <details>
                             <summary style="cursor: pointer; color: blue;">ดูคำตอบ</summary>
-                            <div id="responses-${questionId}" style="padding: 10px;">🔄 กำลังโหลด...</div>
+                            <div id="responses-${attendanceQuestionsId}" style="padding: 10px;">🔄 กำลังโหลด...</div>
                         </details>
                     </td>
+                    <td>
+                        <button
+                            style="padding: 5px 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;"
+                            onclick="navigateToQR('${classroomId}', '${attendanceQuestionsId}')">
+                            📷 แสดง QR Code
+                        </button>
+                    </td>
                 `;
+                tableBody.appendChild(row);
 
-                            tableBody.appendChild(row);
-                            loadAttendanceResponses(questionId); // โหลดคำตอบของคำถามนี้
-                        });
-                    })
-                    .catch(error => {
-                        console.error("❌ โหลดคำถามล้มเหลว:", error);
-                    });
-            }
+                // โหลดคำตอบของคำถามนี้
+                loadAttendanceResponses(attendanceQuestionsId);
+            });
+        })
+        .catch(error => {
+            console.error("❌ โหลดคำถามล้มเหลว:", error);
+        });
+}
 
-
+// ฟังก์ชันสำหรับเปิดหน้า showQR.html
+function navigateToQR(classroomId, attendanceQuestionsId) {
+    window.location.href = `showQR.html?classroomId=${classroomId}&attendanceQuestionsId=${attendanceQuestionsId}`;
+}
 
             function loadAttendanceResponses(questionId) {
                 const responseCell = document.getElementById(`responses-${questionId}`);
