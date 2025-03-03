@@ -324,7 +324,7 @@
 
 
             function generateQRCode() {
-                const classroomIdText = `Classroom ID: ${classroomId}`; // ข้อความเป็นรหัสคลาสรูม
+                const classroomIdText = `${classroomId}`; // ข้อความเป็นรหัสคลาสรูม
 
                 // สร้าง QR Code โดยใช้ข้อความของรหัสคลาสรูม
                 new QRCode(document.getElementById("qrcode"), {
