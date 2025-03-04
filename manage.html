@@ -456,7 +456,7 @@
                         console.error("❌ Error fetching students:", error);
                     });
             }
-            function removeUserFromClass(userId) {
+             function removeUserFromClass(userId) {
                 // ขั้นแรก ลบผู้ใช้จาก collection students ในห้องเรียน
                 db.collection("classrooms").doc(classroomId)
                     .collection("students").doc(userId)
@@ -484,7 +484,6 @@
                         console.error("❌ ลบผู้ใช้จากห้องเรียนล้มเหลว:", error);
                     });
             }
-
 
             document.addEventListener("DOMContentLoaded", function () {
                 const content = document.getElementById("manageUsersContent");
